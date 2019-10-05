@@ -1,25 +1,19 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const $path = require('path');
-const { load } = require('./helper');
+const { nextId, setField, validate } = require('./helper');
 
-const userItems = [];
-const getNextId = () => userItems.map(({ id }) => id).concat(0).sort((a, b) => b - a).shift() + 1;
-const setEmail = (userItemIndex, email) => {
-    if (!email) return false;
-    userItems[userItemIndex] = { ...userItems[userItemIndex], email };
-    return true;
-};
-const setFirstName = (userItemIndex, firstName) => {
-    if (!firstName) return false;
-    userItems[userItemIndex] = { ...userItems[userItemIndex], firstName };
-    return true;
-};
-const setLastName = (userItemIndex, lastName) => {
-    if (!lastName) return false;
-    userItems[userItemIndex] = { ...userItems[userItemIndex], lastName };
-    return true;
-};
+const userItems = [
+    {
+        id: 1,
+        email: 'edgar@mail.ua', 
+        firstName: 'Edgar', 
+        lastName: 'Rostomian'
+    }
+];
+const getNextId = nextId(userItems);
+const setEmail = setField(userItems, 'email', validate('email'));
+const setFirstName = setField(userItems, 'firstName', validate('text'));
+const setLastName = setField(userItems, 'lastName', validate('text'));
 
 const router = $express.Router({
     caseSensitive: true,
@@ -27,53 +21,58 @@ const router = $express.Router({
     strict: true
 });
 
+const userIdExists = async (userId) => +userId > 0 && userItems.some(({ id }) => id === +userId);
+
 router.get('/', async (req, res) => {
-    res.status(200).type('application/json').end(JSON.stringify(userItems));
+    res.json({ data: userItems });
 });
 
 router.post('/', async (req, res) => {
     const userId = getNextId();
-    userItems.push({ id: userId, email: '', firstName: '', lastName: '' });
+    userItems.unshift({ id: userId, email: '', firstName: '', lastName: '' });
     const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-    const { email, firstName, lastName } = await load(req);
+    const { email, firstName, lastName } = req.body;
     setEmail(userItemIndex, email);
     setFirstName(userItemIndex, firstName);
     setLastName(userItemIndex, lastName);
     const userItem = userItems[userItemIndex];
-    res.status(200).type('application/json').end(JSON.stringify(userItem));        
+    res.json({ data: userItem });        
 });
 
-router.param('userId', async (req, res, next, userId) => {
-    if (+userId > 0 && userItems.some(({ id }) => id === +userId)) {
-        req.userId = +userId;
-        next();
+router.get('/:userId', async (req, res, next) => {
+    const userId = +req.params.userId;
+    if (userIdExists()) {
+        const userItem = userItems.find(({ id }) => id === +userId);
+        res.json({ data: userItem });
     } else {
         next(new Error('Error param: userId'));
     }
 });
 
-router.get('/:userId', async (req, res) => {
-    const userId = req.userId;
-    const userItem = userItems.find(({ id }) => id === +userId);
-    res.status(200).type('application/json').end(JSON.stringify(userItem));        
+router.put('/:userId', async (req, res, next) => {
+    const userId = +req.params.userId;
+    if (userIdExists(userId)) {
+        const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
+        const { email, firstName, lastName } = req.body;
+        setEmail(userItemIndex, email);
+        setFirstName(userItemIndex, firstName);
+        setLastName(userItemIndex, lastName);
+        const userItem = userItems[userItemIndex];
+        res.json({ data: userItem });
+    } else {
+        next(new Error('Error param: userId'));
+    }
 });
 
-router.put('/:userId', async (req, res) => {
-    const userId = req.userId;
-    const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-    const { email, firstName, lastName } = await load(req);
-    setEmail(userItemIndex, email);
-    setFirstName(userItemIndex, firstName);
-    setLastName(userItemIndex, lastName);
-    const userItem = userItems[userItemIndex];
-    res.status(200).type('application/json').end(JSON.stringify(userItem));        
-});
-
-router.delete('/:userId', async (req, res) => {
-    const userId = req.userId;
-    const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-    const userItem = userItems.splice(userItemIndex, 1).shift();
-    res.status(200).type('application/json').end(JSON.stringify(userItem));        
+router.delete('/:userId', async (req, res, next) => {
+    const userId = +req.params.userId;
+    if (userIdExists(userId)) {
+        const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
+        const userItem = userItems.splice(userItemIndex, 1).shift();
+        res.json({ data: userItem });
+    } else {
+        next(new Error('Error param: userId'));
+    }
 });
 
 module.exports = router;

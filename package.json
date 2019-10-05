@@ -2,8 +2,9 @@
   "name": "Lection5",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
+    "pm2-start": "pm2 start app.js",
     "dev": "npx nodemon app.js",
     "lint": "npx eslint app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,13 +13,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.19.0",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
-    "fs": "0.0.1-security",
     "https": "^1.0.0",
-    "path": "^0.12.7",
+    "mysql2": "^1.7.0",
     "process": "^0.11.10",
-    "pug": "^2.0.4"
+    "pug": "^2.0.4",
+    "sequelize": "^5.19.4"
   },
   "devDependencies": {
     "eslint": "^6.5.1",
@@ -27,6 +29,8 @@
     "eslint-plugin-node": "^10.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "nodemon": "^1.19.3"
+    "nodemon": "^1.19.3",
+    "pm2": "^3.5.1",
+    "sequelize-cli": "^5.5.1"
   }
 }

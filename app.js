@@ -1,18 +1,18 @@
 /* eslint-disable no-unused-vars */
 require('dotenv').config();
 const $express = require('express');
-const $fs = require('fs');
-const $path = require('path');
 const $process = require('process');
 const $pug = require('pug');
+const $bodyParser = require('body-parser');
 
 const app = $express();
-const root = __dirname; // прописывать пути относительно корня
 
+app.use($bodyParser.urlencoded({ extended: false }));
+app.use($bodyParser.json());
 app.engine('pug', $pug.__express);
 
 app.use('/api/v1/blog', require('./routes/blog'));
-app.use('/api/v1/user', require('./routes/user'));
+app.use('/api/v1/users', require('./routes/user'));
 app.use(require('./routes/fe'));
 
 app.use($express.static('assets', {
