@@ -4,6 +4,7 @@ const $express = require('express');
 const $process = require('process');
 const $pug = require('pug');
 const $bodyParser = require('body-parser');
+const $models = require('./models');
 
 const app = $express();
 
@@ -32,4 +33,10 @@ app.use(function (err, req, res, next) {
     res.status(500).send('Something broke!');
 });
 
-app.listen($process.env.PORT || 2000);
+$models.sequelize.sync().then(() => {
+    console.log(`DB connection success!`);
+    const port = $process.env.PORT || 2000;
+    app.listen(port, () => {
+        console.log(`Web-server started on port ${port}`);
+    });
+});
