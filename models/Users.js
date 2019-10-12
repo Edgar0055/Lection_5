@@ -21,20 +21,28 @@ module.exports = (sequelize, DataTypes) => {
     },
     createdAt: {
       allowNull: false,
+      // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
       field: 'created_at',
       type: DataTypes.DATE
     },
     updatedAt: {
       allowNull: false,
+      // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
       field: 'updated_at',
       type: DataTypes.DATE
     }
   }, {});
   Users.associate = (models) => {
-    Users.hasMany(models.Articles, {
-      as: 'articles',
-      foreignKey: 'authorId'
-    });
+    Users.hasMany(models.Articles);
+    // Users.hasMany(models.Articles, {
+    //   as: 'articles',
+    //   foreignKey: {
+    //     name: 'authorId',
+    //     allowNull: false
+    //   },
+    //   constraints: true,
+    //   onDelete: 'cascade'
+    // });
   };
   return Users;
 };
