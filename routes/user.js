@@ -1,19 +1,8 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const { nextId, setField, validate } = require('./helper');
-
-const userItems = [
-    {
-        id: 1,
-        email: 'edgar@mail.ua', 
-        firstName: 'Edgar', 
-        lastName: 'Rostomian'
-    }
-];
-const getNextId = nextId(userItems);
-const setEmail = setField(userItems, 'email', validate('email'));
-const setFirstName = setField(userItems, 'firstName', validate('text'));
-const setLastName = setField(userItems, 'lastName', validate('text'));
+const $models = require('../models');
+const { Users } = $models;
+const { validate } = require('./helper');
 
 const router = $express.Router({
     caseSensitive: true,
@@ -21,29 +10,26 @@ const router = $express.Router({
     strict: true
 });
 
-const userIdExists = async (userId) => +userId > 0 && userItems.some(({ id }) => id === +userId);
-
 router.get('/', async (req, res) => {
-    res.json({ data: userItems });
+    const users = await Users.findAll();
+    res.json(users);
 });
 
-router.post('/', async (req, res) => {
-    const userId = getNextId();
-    userItems.unshift({ id: userId, email: '', firstName: '', lastName: '' });
-    const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-    const { email, firstName, lastName } = req.body;
-    setEmail(userItemIndex, email);
-    setFirstName(userItemIndex, firstName);
-    setLastName(userItemIndex, lastName);
-    const userItem = userItems[userItemIndex];
-    res.json({ data: userItem });        
+router.post('/', async (req, res, next) => {
+    const { password, email, firstName, lastName } = req.body;
+    const user = await Users.create({ email, firstName, lastName, password });
+    if (user) {
+        res.json(user);
+    } else {
+        next(new Error('Error param: userId'));
+    }
 });
 
 router.get('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    if (userIdExists()) {
-        const userItem = userItems.find(({ id }) => id === +userId);
-        res.json({ data: userItem });
+    const user = await Users.findOne({ where: { id: userId } })
+    if (user) {
+        res.json(user);
     } else {
         next(new Error('Error param: userId'));
     }
@@ -51,14 +37,11 @@ router.get('/:userId', async (req, res, next) => {
 
 router.put('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    if (userIdExists(userId)) {
-        const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-        const { email, firstName, lastName } = req.body;
-        setEmail(userItemIndex, email);
-        setFirstName(userItemIndex, firstName);
-        setLastName(userItemIndex, lastName);
-        const userItem = userItems[userItemIndex];
-        res.json({ data: userItem });
+    const { password, email, firstName, lastName } = req.body;
+    const result = await Users.update({ email, firstName, lastName, password }, { where: { id: userId } });
+    if (result) {
+        const user = await Users.findOne({ where: { id: userId } })
+        res.json(user);
     } else {
         next(new Error('Error param: userId'));
     }
@@ -66,10 +49,10 @@ router.put('/:userId', async (req, res, next) => {
 
 router.delete('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    if (userIdExists(userId)) {
-        const userItemIndex = userItems.findIndex(({ id }) => id === +userId);
-        const userItem = userItems.splice(userItemIndex, 1).shift();
-        res.json({ data: userItem });
+    const user = await Users.findOne({ where: { id: userId } })
+    const result = await Users.destroy({ where: { id: userId } });
+    if (result) {
+        res.json(user);
     } else {
         next(new Error('Error param: userId'));
     }

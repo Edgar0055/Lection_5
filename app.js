@@ -33,10 +33,11 @@ app.use(function (err, req, res, next) {
     res.status(500).send('Something broke!');
 });
 
-$models.sequelize.sync().then(() => {
-    console.log(`DB connection success!`);
+(async () => {
+    await $models.sequelize.authenticate();
+    console.log('DB connection success!');
     const port = $process.env.PORT || 2000;
     app.listen(port, () => {
         console.log(`Web-server started on port ${port}`);
     });
-});
+})();
