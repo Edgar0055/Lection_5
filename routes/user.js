@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const $models = require('../models');
-const { Users } = $models;
+const { Articles, Users } = $models;
 const { validate } = require('./helper');
 
 const router = $express.Router({
@@ -11,15 +11,32 @@ const router = $express.Router({
 });
 
 router.get('/', async (req, res) => {
-    const users = await Users.findAll();
-    res.json(users);
+    const users = await Users.findAll({
+        attributes: {
+            include: [
+                [
+                    $models.sequelize.fn('COUNT', $models.sequelize.col('author_id')),
+                    'articles'
+                ]
+            ]
+        },
+        include: [{
+            model: $models.Articles,
+            as: 'Articles',
+            attributes: []
+        }],
+        group: ['Users.id']
+    });
+    res.json({ data: users });
 });
 
 router.post('/', async (req, res, next) => {
     const { password, email, firstName, lastName } = req.body;
-    const user = await Users.create({ email, firstName, lastName, password });
+    const user = await Users.create({
+        email, firstName, lastName, password
+    });
     if (user) {
-        res.json(user);
+        res.json({ data: user });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -27,9 +44,11 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    const user = await Users.findOne({ where: { id: userId } })
+    const user = await Users.findOne({
+        where: { id: userId }
+    });
     if (user) {
-        res.json(user);
+        res.json({ data: user });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -38,10 +57,16 @@ router.get('/:userId', async (req, res, next) => {
 router.put('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
     const { password, email, firstName, lastName } = req.body;
-    const result = await Users.update({ email, firstName, lastName, password }, { where: { id: userId } });
+    const result = await Users.update({
+        email, firstName, lastName, password
+    }, {
+        where: { id: userId }
+    });
     if (result) {
-        const user = await Users.findOne({ where: { id: userId } })
-        res.json(user);
+        const user = await Users.findOne({
+            where: { id: userId }
+        });
+        res.json({ data: user });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -49,10 +74,28 @@ router.put('/:userId', async (req, res, next) => {
 
 router.delete('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    const user = await Users.findOne({ where: { id: userId } })
-    const result = await Users.destroy({ where: { id: userId } });
+    const user = await Users.findOne({
+        where: { id: userId }
+    });
+    const result = await Users.destroy({
+        where: { id: userId }
+    });
     if (result) {
-        res.json(user);
+        res.json({ data: user });
+    } else {
+        next(new Error('Error param: userId'));
+    }
+});
+
+router.get('/:userId/blog', async (req, res, next) => {
+    const userId = +req.params.userId;
+    const articles = await Articles.findAll({
+        where: { authorId: userId },
+        include: [{ model: Users, as: 'Users' }],
+        order: [['updated_at', 'DESC']]
+    });
+    if (articles) {
+        res.json({ data: articles });
     } else {
         next(new Error('Error param: userId'));
     }

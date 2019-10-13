@@ -33,16 +33,16 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {});
   Users.associate = (models) => {
-    Users.hasMany(models.Articles);
-    // Users.hasMany(models.Articles, {
-    //   as: 'articles',
-    //   foreignKey: {
-    //     name: 'authorId',
-    //     allowNull: false
-    //   },
-    //   constraints: true,
-    //   onDelete: 'cascade'
-    // });
+    Users.hasMany(models.Articles, {
+      as: 'Articles',
+      foreignKey: {
+        name: 'authorId',
+        allowNull: false
+      },
+      constraints: true,
+      onUpdate: 'cascade',
+      onDelete: 'cascade'
+    });
   };
   return Users;
 };
