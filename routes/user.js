@@ -88,7 +88,7 @@ router.get('/:userId/blog', async (req, res, next) => {
     const userId = +req.params.userId;
     const articles = await Articles.findAll({
         where: { authorId: userId },
-        include: [{ model: Users, as: 'Users' }],
+        include: [{ model: Users, as: 'author' }],
         order: [['updated_at', 'DESC']]
     });
     if (articles) {
