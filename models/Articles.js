@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         content: {
             allowNull: false,
             defaultValue: '',
-            type: DataTypes.STRING
+            type: DataTypes.TEXT
         },
         authorId: {
             allowNull: false,
