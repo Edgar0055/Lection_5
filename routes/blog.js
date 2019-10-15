@@ -12,7 +12,7 @@ const router = $express.Router({
 
 router.get('/', async (req, res) => {
     const articles = await Articles.findAll({
-        // include: [{ model: Users, as: 'Users' }],
+        include: [{ model: Users, as: 'author' }],
         order: [['id', 'DESC']]
     });
     res.json({ data: articles });
@@ -33,7 +33,7 @@ router.post('/', async (req, res, next) => {
 router.get('/:blogId', async (req, res, next) => {
     const blogId = +req.params.blogId;
     const article = await Articles.findOne({
-        // include: [{ model: Users, as: 'Users' }],
+        include: [{ model: Users, as: 'author' }],
         where: { id: blogId }
     });
     if (article) {
@@ -63,14 +63,11 @@ router.put('/:blogId', async (req, res, next) => {
 
 router.delete('/:blogId', async (req, res, next) => {
     const blogId = +req.params.blogId;
-    const article = await Articles.findOne({
-        where: { id: blogId }
-    });
     const result = await Articles.destroy({
         where: { id: blogId }
     });
     if (result) {
-        res.json({ data: article });
+        res.end();
     } else {
         next(new Error('Error param: blogId'));
     }

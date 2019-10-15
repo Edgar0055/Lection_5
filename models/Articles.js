@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
     }, {});
     Articles.associate = (models) => {
         Articles.belongsTo(models.Users, {
-            as: 'Users',
+            as: 'author',
             foreignKey: {
                 name: 'authorId',
                 allowNull: false

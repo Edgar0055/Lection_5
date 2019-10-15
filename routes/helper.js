@@ -1,17 +1,5 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable no-undef */
-// module.exports.nextId = (items) => () => items.map(({ id }) => id)
-//     .concat(0)
-//     .sort((a, b) => b - a)
-//     .shift() + 1;
-
-// module.exports.setField = (items, field, validate = false) => (index, value) => {
-//     const item = items[index];
-//     if (!item) return false;
-//     if (validate instanceof Function && !validate(value)) return false;
-//     items[index] = { ...item, ...{ [field]: value } };
-//     return true;
-// };
 
 module.exports.validate = (type) = (_) => {
     switch (type) {

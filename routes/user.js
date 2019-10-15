@@ -74,14 +74,11 @@ router.put('/:userId', async (req, res, next) => {
 
 router.delete('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    const user = await Users.findOne({
-        where: { id: userId }
-    });
     const result = await Users.destroy({
         where: { id: userId }
     });
     if (result) {
-        res.json({ data: user });
+        res.end();
     } else {
         next(new Error('Error param: userId'));
     }
