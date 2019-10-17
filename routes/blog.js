@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const $models = require('../dbms/sequelize/models');
-const { Articles, Users } = $models;
+const { Articles, Users } = require('../dbms/sequelize/models');
+const { ArticlesViews } = require('../dbms/mongodb/models');
 const { validate } = require('./helper');
 
 const router = $express.Router({
@@ -14,7 +14,8 @@ router.get('/', async (req, res) => {
     const articles = await Articles.findAll({
         include: [{ model: Users, as: 'author' }],
         order: [['id', 'DESC']]
-    });
+    }).map( article => article.toJSON() );
+    // TODO: views?
     res.json({ data: articles });
 });
 
@@ -24,7 +25,8 @@ router.post('/', async (req, res, next) => {
         title, content, authorId, publishedAt
     });
     if (article) {
-        res.json({ data: article });
+        // TODO: views?
+        res.json({ data: { ...article.toJSON() } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -32,12 +34,16 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:blogId', async (req, res, next) => {
     const blogId = +req.params.blogId;
-    const article = await Articles.findOne({
+    let article = await Articles.findOne({
         include: [{ model: Users, as: 'author' }],
         where: { id: blogId }
     });
     if (article) {
-        res.json({ data: article });
+        article = article.toJSON();
+        console.log(article);
+        // TODO: views?
+        const views = await ArticlesViews.findOne({ articleId: article.id, authorId: article.authorId }) || 0;
+        res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: blogId'));
     }
@@ -55,7 +61,7 @@ router.put('/:blogId', async (req, res, next) => {
         const article = await Articles.findOne({
             where: { id: blogId }
         });
-        res.json({ data: article });
+        res.json({ data: { ...article.toJSON() } });
     } else {
         next(new Error('Error param: blogId'));
     }
@@ -67,6 +73,7 @@ router.delete('/:blogId', async (req, res, next) => {
         where: { id: blogId }
     });
     if (result) {
+        // TODO: views?
         res.end();
     } else {
         next(new Error('Error param: blogId'));

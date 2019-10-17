@@ -4,7 +4,8 @@ const $express = require('express');
 const $process = require('process');
 const $pug = require('pug');
 const $bodyParser = require('body-parser');
-const $models = require('./dbms/sequelize/models');
+const { connect: sequelizeConnect } = require('./dbms/sequelize/models');
+const { connect: mongodbConnect } = require('./dbms/mongodb/models');
 
 const $winston = require('winston');
 const $expressWinston = require('express-winston');
@@ -40,8 +41,10 @@ app.use(function (err, req, res, next) {
 });
 
 (async () => {
-    await $models.sequelize.authenticate();
-    console.log('DB connection success!');
+    await sequelizeConnect();
+    console.log('MySQL DB connection success!');
+    await mongodbConnect();
+    console.log('MongoDB connection success!');
     const port = $process.env.PORT || 2000;
     app.listen(port, () => {
         console.log(`Web-server started on port ${port}`);

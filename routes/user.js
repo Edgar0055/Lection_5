@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const $models = require('../dbms/sequelize/models');
-const { Articles, Users } = $models;
+const { Articles, Users } = require('../dbms/sequelize/models');
+const { ArticlesViews } = require('../dbms/mongodb/models')
 const { validate } = require('./helper');
 
 const router = $express.Router({
@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
             include: [
                 [
                     $models.sequelize.fn('COUNT', $models.sequelize.col('author_id')),
-                    'articles'
+                    'articlesCount'
                 ]
             ]
         },
@@ -26,7 +26,8 @@ router.get('/', async (req, res) => {
             attributes: []
         }],
         group: ['Users.id']
-    });
+    }).map( user => user.toJSON() );
+    // TODO: views?
     res.json({ data: users });
 });
 
@@ -36,7 +37,7 @@ router.post('/', async (req, res, next) => {
         email, firstName, lastName, password
     });
     if (user) {
-        res.json({ data: user });
+        res.json({ data: { ...user.toJSON() } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -48,7 +49,8 @@ router.get('/:userId', async (req, res, next) => {
         where: { id: userId }
     });
     if (user) {
-        res.json({ data: user });
+        // TODO: views?
+        res.json({ data: { ...user.toJSON() } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -66,7 +68,7 @@ router.put('/:userId', async (req, res, next) => {
         const user = await Users.findOne({
             where: { id: userId }
         });
-        res.json({ data: user });
+        res.json({ data: { ...user.toJSON() } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -78,6 +80,7 @@ router.delete('/:userId', async (req, res, next) => {
         where: { id: userId }
     });
     if (result) {
+        // TODO: views?
         res.end();
     } else {
         next(new Error('Error param: userId'));
@@ -90,8 +93,9 @@ router.get('/:userId/blog', async (req, res, next) => {
         where: { authorId: userId },
         include: [{ model: Users, as: 'author' }],
         order: [['updated_at', 'DESC']]
-    });
+    }).map( article => article.toJSON() );
     if (articles) {
+        // TODO: views?
         res.json({ data: articles });
     } else {
         next(new Error('Error param: userId'));
