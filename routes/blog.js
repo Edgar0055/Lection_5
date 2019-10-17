@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const $models = require('../models');
+const $models = require('../dbms/sequelize/models');
 const { Articles, Users } = $models;
 const { validate } = require('./helper');
 

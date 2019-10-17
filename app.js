@@ -4,7 +4,7 @@ const $express = require('express');
 const $process = require('process');
 const $pug = require('pug');
 const $bodyParser = require('body-parser');
-const $models = require('./models');
+const $models = require('./dbms/sequelize/models');
 
 const $winston = require('winston');
 const $expressWinston = require('express-winston');
