@@ -14,19 +14,25 @@ router.get('/', async (req, res) => {
     const articles = await Articles.findAll({
         include: [{ model: Users, as: 'author' }],
         order: [['id', 'DESC']]
-    }).map( article => article.toJSON() );
-    // TODO: views?
+    })
+    .map( ( article ) => article.toJSON() )
+    .map( async ( article ) => {
+        const { id: articleId, authorId } = article;
+        const articlesViews = new ArticlesViews({ articleId, authorId });
+        const { views } = await articlesViews.one();
+        return { ...article, views };
+    });
     res.json({ data: articles });
 });
 
 router.post('/', async (req, res, next) => {
     const { title, content, authorId, publishedAt } = req.body;
-    const article = await Articles.create({
+    let article = await Articles.create({
         title, content, authorId, publishedAt
     });
     if (article) {
-        // TODO: views?
-        res.json({ data: { ...article.toJSON() } });
+        article = article.toJSON();
+        res.json({ data: { ...article } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -40,9 +46,9 @@ router.get('/:blogId', async (req, res, next) => {
     });
     if (article) {
         article = article.toJSON();
-        console.log(article);
-        // TODO: views?
-        const views = await ArticlesViews.findOne({ articleId: article.id, authorId: article.authorId }) || 0;
+        const { id: articleId, authorId } = article;
+        const articlesViews = new ArticlesViews({ articleId, authorId });
+        const { views } = await articlesViews.view();
         res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: blogId'));
@@ -58,10 +64,12 @@ router.put('/:blogId', async (req, res, next) => {
         where: { id: blogId }
     });
     if (result) {
-        const article = await Articles.findOne({
+        let article = await Articles.findOne({
             where: { id: blogId }
         });
-        res.json({ data: { ...article.toJSON() } });
+        article = article.toJSON();
+        // TODO: drop views?
+        res.json({ data: { ...article } });
     } else {
         next(new Error('Error param: blogId'));
     }
@@ -69,11 +77,17 @@ router.put('/:blogId', async (req, res, next) => {
 
 router.delete('/:blogId', async (req, res, next) => {
     const blogId = +req.params.blogId;
+    let article = await Articles.findOne({
+        where: { id: blogId }
+    });
+    article = article.toJSON();
     const result = await Articles.destroy({
         where: { id: blogId }
     });
     if (result) {
-        // TODO: views?
+        const { id: articleId, authorId } = article;
+        const articlesViews = new ArticlesViews({ articleId, authorId });
+        await articlesViews.del();
         res.end();
     } else {
         next(new Error('Error param: blogId'));

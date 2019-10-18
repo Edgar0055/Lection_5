@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
-const { Articles, Users } = require('../dbms/sequelize/models');
+const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { validate } = require('./helper');
 
@@ -15,18 +15,19 @@ router.get('/', async (req, res) => {
         attributes: {
             include: [
                 [
-                    $models.sequelize.fn('COUNT', $models.sequelize.col('author_id')),
+                    sequelize.fn('COUNT', sequelize.col('author_id')),
                     'articlesCount'
                 ]
             ]
         },
         include: [{
-            model: $models.Articles,
+            model: Articles,
             as: 'Articles',
             attributes: []
         }],
         group: ['Users.id']
-    }).map( user => user.toJSON() );
+    })
+    .map( user => user.toJSON() );
     // TODO: views?
     res.json({ data: users });
 });
@@ -49,7 +50,6 @@ router.get('/:userId', async (req, res, next) => {
         where: { id: userId }
     });
     if (user) {
-        // TODO: views?
         res.json({ data: { ...user.toJSON() } });
     } else {
         next(new Error('Error param: userId'));
@@ -80,7 +80,8 @@ router.delete('/:userId', async (req, res, next) => {
         where: { id: userId }
     });
     if (result) {
-        // TODO: views?
+        const articlesViews = new ArticlesViews({ authorId: userId });
+        await articlesViews.del();
         res.end();
     } else {
         next(new Error('Error param: userId'));
@@ -93,9 +94,15 @@ router.get('/:userId/blog', async (req, res, next) => {
         where: { authorId: userId },
         include: [{ model: Users, as: 'author' }],
         order: [['updated_at', 'DESC']]
-    }).map( article => article.toJSON() );
+    })
+    .map( article => article.toJSON() )
+    .map( async ( article ) => {
+        const { id: articleId, authorId } = article;
+        const articlesViews = new ArticlesViews({ articleId, authorId });
+        const { views } = await articlesViews.one();
+        return { ...article, views };
+    });
     if (articles) {
-        // TODO: views?
         res.json({ data: articles });
     } else {
         next(new Error('Error param: userId'));
