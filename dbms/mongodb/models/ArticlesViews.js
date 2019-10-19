@@ -71,17 +71,6 @@ schema.method('del', async function () {
 
 schema.method('ag_one', async function () {
     const { authorId } = this;
-    // await ArticlesViews.aggregate(
-    //     [
-    //         { "$match": { "authorId": { "$eq": authorId } } },
-    //         {
-    //             "$group": {
-    //                 "_id": '"$authorId"',
-    //                 "views": { "$sum": '"$views"' }
-    //             }
-    //         }
-    //     ]
-    // )
     const result = await ArticlesViews.aggregate()
         .match({ authorId: { $eq: authorId } })
         .group({
@@ -90,16 +79,6 @@ schema.method('ag_one', async function () {
         });
     return result.shift();
 });
-
-// schema.method('ag_all', async function () {
-//     const result = await ArticlesViews.aggregate()
-//         .group({
-//             _id: "$authorId",
-//             views: { $sum: "$views" }
-//         });
-//     return result;
-// });
-
 
 const ArticlesViews = model('articles_views', schema);
 
