@@ -27,7 +27,12 @@ router.get('/', async (req, res) => {
         }],
         group: ['Users.id']
     })
-    .map( user => user.toJSON() );
+    .map( user => user.toJSON() )
+    .map( async ( user ) => {
+        const articlesViews = new ArticlesViews({ authorId: user.id });
+        const { views } = await articlesViews.ag_one();
+        return { ...user, viewsCount: views };
+    });
     // TODO: views?
     res.json({ data: users });
 });
@@ -46,11 +51,14 @@ router.post('/', async (req, res, next) => {
 
 router.get('/:userId', async (req, res, next) => {
     const userId = +req.params.userId;
-    const user = await Users.findOne({
+    let user = await Users.findOne({
         where: { id: userId }
     });
     if (user) {
-        res.json({ data: { ...user.toJSON() } });
+        user = user.toJSON();
+        const articlesViews = new ArticlesViews({ authorId: user.id });
+        const { views } = await articlesViews.ag_one();
+        res.json({ data: { ...user, views } });
     } else {
         next(new Error('Error param: userId'));
     }

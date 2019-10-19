@@ -23,20 +23,30 @@ const create = async (articleId, authorId, views) => {
     return record;
 };
 const update = async (_id, options) => {
-    await ArticlesViews.updateOne({ _id }, { ...options, editedAt: new Date() });
+    await ArticlesViews.updateOne({ _id }, {
+        $set: {
+            ...options,
+            editedAt: new Date()
+        }
+    });
 };
 const remove = async (options) => await ArticlesViews.remove(options);
 
 schema.method('view', async function () {
     const { articleId, authorId } = this;
-    let record = await find({ articleId, authorId });
+    const session = await $mongoose.startSession();
+    session.startTransaction({});
+    let record = await find({ articleId });
     if ( record ) {
         const { _id, views } = record;
-        await update(_id, { views: views + 1 });
-        return await findById(_id);
+        await update(_id, { authorId, views: views + 1 });
+        record = await findById(_id);
     } else {
-        return await create(articleId, authorId, 1);
+        record = await create(articleId, authorId, 1);
     }
+    await session.commitTransaction();
+    session.endSession();
+    return record;
 });
 
 schema.method('one', async function () {
@@ -58,6 +68,38 @@ schema.method('del', async function () {
     );
     return await remove(options);
 });
+
+schema.method('ag_one', async function () {
+    const { authorId } = this;
+    // await ArticlesViews.aggregate(
+    //     [
+    //         { "$match": { "authorId": { "$eq": authorId } } },
+    //         {
+    //             "$group": {
+    //                 "_id": '"$authorId"',
+    //                 "views": { "$sum": '"$views"' }
+    //             }
+    //         }
+    //     ]
+    // )
+    const result = await ArticlesViews.aggregate()
+        .match({ authorId: { $eq: authorId } })
+        .group({
+            _id: "$authorId",
+            views: { $sum: "$views" }
+        });
+    return result.shift();
+});
+
+// schema.method('ag_all', async function () {
+//     const result = await ArticlesViews.aggregate()
+//         .group({
+//             _id: "$authorId",
+//             views: { $sum: "$views" }
+//         });
+//     return result;
+// });
+
 
 const ArticlesViews = model('articles_views', schema);
 
