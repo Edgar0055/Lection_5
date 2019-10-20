@@ -1,5 +1,6 @@
 const $mongoose = require('mongoose');
 const { Schema, model } = $mongoose;
+const { actionLogger } = require('../../../logger/logger');
 
 const schema = new Schema({
     articleId: Number,
@@ -37,6 +38,7 @@ schema.method('view', async function () {
     const session = await $mongoose.startSession();
     session.startTransaction({});
     let record = await find({ articleId });
+    actionLogger.info( `articleId: ${ articleId }, authorId: ${ authorId }` );
     if ( record ) {
         const { _id, views } = record;
         await update(_id, { authorId, views: views + 1 });
