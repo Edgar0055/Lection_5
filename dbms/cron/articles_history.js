@@ -1,3 +1,5 @@
+// mongo  < article_history.js
+
 (() => {
     let history = {};
     db.getCollection("mongoose_logs")

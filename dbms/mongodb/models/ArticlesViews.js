@@ -2,12 +2,22 @@ const $mongoose = require('mongoose');
 const { Schema, model } = $mongoose;
 const { actionLogger } = require('../../../logger/logger');
 
+// https://mongoosejs.com/docs/defaults.html
 const schema = new Schema({
     articleId: Number,
     authorId: Number,
-    views: Number,
-    createdAt: Date,
-    editedAt: Date,
+    views: {
+        type: Number,
+        default: 0,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    editedAt: {
+        type: Date,
+        default: Date.now,
+    },
 });
 
 const find = async (options) => await ArticlesViews.findOne(options);
@@ -35,20 +45,35 @@ const remove = async (options) => await ArticlesViews.remove(options);
 
 schema.method('view', async function () {
     const { articleId, authorId } = this;
-    const session = await $mongoose.startSession();
-    session.startTransaction({});
-    let record = await find({ articleId });
-    actionLogger.info( `articleId: ${ articleId }, authorId: ${ authorId }` );
-    if ( record ) {
-        const { _id, views } = record;
-        await update(_id, { authorId, views: views + 1 });
-        record = await findById(_id);
-    } else {
-        record = await create(articleId, authorId, 1);
-    }
-    await session.commitTransaction();
-    session.endSession();
-    return record;
+    await ArticlesViews.findOneAndUpdate({
+        articleId,
+        authorId,
+    }, {
+        $inc: {
+            views: 1,
+        },
+        $setOnInsert: {
+            views: 0,
+        }
+    }, {
+        new: true,
+        upsert: true,
+    });
+
+    // const session = await $mongoose.startSession();
+    // session.startTransaction({});
+    // let record = await find({ articleId });
+    // actionLogger.info( `articleId: ${ articleId }, authorId: ${ authorId }` );
+    // if ( record ) {
+    //     const { _id, views } = record;
+    //     await update(_id, { authorId, views: views + 1 });
+    //     record = await findById(_id);
+    // } else {
+    //     record = await create(articleId, authorId, 1);
+    // }
+    // await session.commitTransaction();
+    // session.endSession();
+    // return record;
 });
 
 schema.method('one', async function () {
@@ -79,7 +104,7 @@ schema.method('ag_one', async function () {
             _id: "$authorId",
             views: { $sum: "$views" }
         });
-    return result.shift();
+    return result.shift() || {};
 });
 
 const ArticlesViews = model('articles_views', schema);

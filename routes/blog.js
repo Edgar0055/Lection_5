@@ -47,8 +47,20 @@ router.get('/:blogId', async (req, res, next) => {
     if (article) {
         article = article.toJSON();
         const { id: articleId, authorId } = article;
-        const articlesViews = new ArticlesViews({ articleId, authorId });
-        const { views } = await articlesViews.view();
+        ArticlesViews.findOneAndUpdate({
+            articleId,
+        }, {
+            authorId,
+            $inc: {
+                views: 1,
+            }
+        }, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        });
+        // const articlesViews = new ArticlesViews({ articleId, authorId });
+        // const { views } = await articlesViews.view();
         res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: blogId'));
