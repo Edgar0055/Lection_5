@@ -4,6 +4,7 @@ const $express = require('express');
 const $process = require('process');
 const $pug = require('pug');
 const $bodyParser = require('body-parser');
+const $logger = require('./logger/logger');
 const { connect: sequelizeConnect } = require('./dbms/sequelize/models');
 const { connect: mongodbConnect } = require('./dbms/mongodb/models');
 
@@ -42,11 +43,11 @@ app.use(function (err, req, res, next) {
 
 (async () => {
     await sequelizeConnect();
-    console.log('MySQL DB connection success!');
+    $logger.actionLogger.info('MySQL DB connection success!');
     await mongodbConnect();
-    console.log('MongoDB connection success!');
+    $logger.actionLogger.info('MongoDB connection success!');
     const port = $process.env.PORT || 2000;
     app.listen(port, () => {
-        console.log(`Web-server started on port ${port}`);
+        $logger.actionLogger.info(`Web-server started on port ${port}`);
     });
 })();

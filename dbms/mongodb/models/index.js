@@ -28,7 +28,7 @@ models.connect = async () => {
     const options = {
         reconnectInterval: 1000,
         useUnifiedTopology: true,
-        useNewUrlParser: true
+        useNewUrlParser: true,
     };
     await Mongoose.connect(config.connection, options);
 };

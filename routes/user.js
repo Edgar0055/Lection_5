@@ -88,8 +88,7 @@ router.delete('/:userId', async (req, res, next) => {
         where: { id: userId }
     });
     if (result) {
-        const articlesViews = new ArticlesViews({ authorId: userId });
-        await articlesViews.del();
+        await ArticlesViews.deleteMany({ authorId: userId, });
         res.end();
     } else {
         next(new Error('Error param: userId'));

@@ -18,8 +18,9 @@ router.get('/', async (req, res) => {
     .map( ( article ) => article.toJSON() )
     .map( async ( article ) => {
         const { id: articleId, authorId } = article;
-        const articlesViews = new ArticlesViews({ articleId, authorId });
-        const { views } = await articlesViews.one();
+        const { views } = await ArticlesViews.findOne({
+            articleId, authorId,
+        }) || { views: 0, };
         return { ...article, views };
     });
     res.json({ data: articles });
@@ -32,7 +33,15 @@ router.post('/', async (req, res, next) => {
     });
     if (article) {
         article = article.toJSON();
-        res.json({ data: { ...article } });
+        const { id: articleId, authorId } = article;
+        const { views } = await ArticlesViews.findOneAndUpdate({
+            articleId,
+        }, {
+            authorId, views: 0,
+        }, {
+            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModify: false,
+        });
+        res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: userId'));
     }
@@ -47,20 +56,13 @@ router.get('/:blogId', async (req, res, next) => {
     if (article) {
         article = article.toJSON();
         const { id: articleId, authorId } = article;
-        ArticlesViews.findOneAndUpdate({
+        const { views } = await ArticlesViews.findOneAndUpdate({
             articleId,
         }, {
-            authorId,
-            $inc: {
-                views: 1,
-            }
+            authorId, $inc: { views: 1, }
         }, {
-            new: true,
-            upsert: true,
-            setDefaultsOnInsert: true,
+            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModif: false,
         });
-        // const articlesViews = new ArticlesViews({ articleId, authorId });
-        // const { views } = await articlesViews.view();
         res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: blogId'));
@@ -80,8 +82,15 @@ router.put('/:blogId', async (req, res, next) => {
             where: { id: blogId }
         });
         article = article.toJSON();
-        // TODO: drop views?
-        res.json({ data: { ...article } });
+        const { id: articleId, authorId } = article;
+        const { views } = await ArticlesViews.findOneAndUpdate({
+            articleId,
+        }, {
+            authorId, views: 0,
+        }, {
+            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModify: false,
+        });
+        res.json({ data: { ...article, views } });
     } else {
         next(new Error('Error param: blogId'));
     }
@@ -97,9 +106,8 @@ router.delete('/:blogId', async (req, res, next) => {
         where: { id: blogId }
     });
     if (result) {
-        const { id: articleId, authorId } = article;
-        const articlesViews = new ArticlesViews({ articleId, authorId });
-        await articlesViews.del();
+        const { id: articleId, } = article;
+        await ArticlesViews.deleteMany({ articleId, });
         res.end();
     } else {
         next(new Error('Error param: blogId'));
