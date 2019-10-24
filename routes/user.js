@@ -11,7 +11,7 @@ const router = $express.Router({
 });
 
 router.get('/', async (req, res) => {
-    const users = await Users.findAll({
+    let users = await Users.findAll({
         attributes: {
             include: [
                 [
@@ -26,14 +26,20 @@ router.get('/', async (req, res) => {
             attributes: []
         }],
         group: ['Users.id']
-    })
-    .map( user => user.toJSON() )
-    .map( async ( user ) => {
-        const articlesViews = new ArticlesViews({ authorId: user.id });
-        const { views } = await articlesViews.ag_one();
+    });
+    users = users.map( user => user.toJSON() );
+    users = users.map( async ( user ) => {
+        const authorId = user.id;
+        const articlesViews = await ArticlesViews.aggregate()
+            .match({ authorId: { $eq: authorId } })
+            .group({
+                _id: "$authorId",
+                views: { $sum: "$views" }
+            });
+        const { views } = articlesViews.shift() || { views: 0, };
         return { ...user, viewsCount: views };
     });
-    // TODO: views?
+    users = await Promise.all(users);
     res.json({ data: users });
 });
 
@@ -56,8 +62,14 @@ router.get('/:userId', async (req, res, next) => {
     });
     if (user) {
         user = user.toJSON();
-        const articlesViews = new ArticlesViews({ authorId: user.id });
-        const { views } = await articlesViews.ag_one();
+        const authorId = user.id;
+        const articlesViews = await ArticlesViews.aggregate()
+            .match({ authorId: { $eq: authorId } })
+            .group({
+                _id: "$authorId",
+                views: { $sum: "$views" }
+            });
+        const { views } = articlesViews.shift() || { views: 0, };
         res.json({ data: { ...user, views } });
     } else {
         next(new Error('Error param: userId'));
@@ -97,19 +109,22 @@ router.delete('/:userId', async (req, res, next) => {
 
 router.get('/:userId/blog', async (req, res, next) => {
     const userId = +req.params.userId;
-    const articles = await Articles.findAll({
+    let articles = await Articles.findAll({
         where: { authorId: userId },
         include: [{ model: Users, as: 'author' }],
         order: [['updated_at', 'DESC']]
-    })
-    .map( article => article.toJSON() )
-    .map( async ( article ) => {
-        const { id: articleId, authorId } = article;
-        const articlesViews = new ArticlesViews({ articleId, authorId });
-        const { views } = await articlesViews.one();
-        return { ...article, views };
     });
     if (articles) {
+        articles = articles.map( article => article.toJSON() );
+        articles = articles.map( async ( article ) => {
+            const { id: articleId, authorId } = article;
+            const articlesViews = await ArticlesViews.findOne({
+                articleId, authorId,
+            });
+            const { views } = articlesViews || { views: 0, };
+            return { ...article, views };
+        });
+        articles = await Promise.all(articles);
         res.json({ data: articles });
     } else {
         next(new Error('Error param: userId'));

@@ -11,18 +11,20 @@ const router = $express.Router({
 });
 
 router.get('/', async (req, res) => {
-    const articles = await Articles.findAll({
+    let articles = await Articles.findAll({
         include: [{ model: Users, as: 'author' }],
         order: [['id', 'DESC']]
-    })
-    .map( ( article ) => article.toJSON() )
-    .map( async ( article ) => {
+    });
+    articles = articles.map( ( article ) => article.toJSON() );
+    articles = articles.map( async ( article ) => {
         const { id: articleId, authorId } = article;
-        const { views } = await ArticlesViews.findOne({
+        const articlesViews = await ArticlesViews.findOne({
             articleId, authorId,
-        }) || { views: 0, };
+        });
+        const { views } = articlesViews || { views: 0, };
         return { ...article, views };
     });
+    articles = await Promise.all(articles);
     res.json({ data: articles });
 });
 
