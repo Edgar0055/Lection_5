@@ -30,6 +30,13 @@ models.connect = async () => {
         useUnifiedTopology: true,
         useNewUrlParser: true,
     };
+    Object.entries({
+        useCreateIndex: true,
+        setDefaultsOnInsert: true,
+        useFindAndModify: false,
+        // new: true,
+        upsert: true,
+    }).map( ([key, value]) => Mongoose.set(key, value));
     await Mongoose.connect(config.connection, options);
 };
 

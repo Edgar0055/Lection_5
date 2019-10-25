@@ -41,7 +41,7 @@ router.post('/', async (req, res, next) => {
         }, {
             authorId, views: 0,
         }, {
-            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModify: false,
+            new: true,
         });
         res.json({ data: { ...article, views } });
     } else {
@@ -63,7 +63,7 @@ router.get('/:blogId', async (req, res, next) => {
         }, {
             authorId, $inc: { views: 1, }
         }, {
-            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModif: false,
+            new: true,
         });
         res.json({ data: { ...article, views } });
     } else {
@@ -90,7 +90,7 @@ router.put('/:blogId', async (req, res, next) => {
         }, {
             authorId, views: 0,
         }, {
-            new: true, upsert: true, setDefaultsOnInsert: true, useFindAndModify: false,
+            new: true,
         });
         res.json({ data: { ...article, views } });
     } else {

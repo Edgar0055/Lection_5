@@ -36,8 +36,8 @@ Object.keys(models).forEach(modelName => {
 models.sequelize = sequelize;
 models.Sequelize = Sequelize;
 
-models.connect = async () => {
-    await sequelize.authenticate();
+models.connect = async (onError, onSuccess) => {
+    return await sequelize.authenticate().then(onSuccess, onError);
 };
 
 module.exports = models;

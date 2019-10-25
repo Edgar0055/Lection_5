@@ -5,8 +5,8 @@ const $process = require('process');
 const $pug = require('pug');
 const $bodyParser = require('body-parser');
 const $logger = require('./logger/logger');
-const { connect: sequelizeConnect } = require('./dbms/sequelize/models');
-const { connect: mongodbConnect } = require('./dbms/mongodb/models');
+const { connect: sequelizeConnect, sequelize, } = require('./dbms/sequelize/models');
+const { connect: mongodbConnect, mongoose, } = require('./dbms/mongodb/models');
 
 const $winston = require('winston');
 const $expressWinston = require('express-winston');
@@ -42,8 +42,14 @@ app.use(function (err, req, res, next) {
 });
 
 (async () => {
-    await sequelizeConnect();
-    $logger.actionLogger.info('MySQL DB connection success!');
+    await sequelizeConnect((error) => {
+        $logger.actionLogger.error(`${error}`);
+    }, () => {
+        $logger.actionLogger.info('MySQL DB connection success!');
+    });
+    mongoose.on('error', (error) => {
+        $logger.actionLogger.error(`${error}`);
+    });
     await mongodbConnect();
     $logger.actionLogger.info('MongoDB connection success!');
     const port = $process.env.PORT || 2000;
