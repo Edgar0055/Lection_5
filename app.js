@@ -1,22 +1,39 @@
 /* eslint-disable no-unused-vars */
 require('dotenv').config();
 const $express = require('express');
-const $process = require('process');
-const $pug = require('pug');
-const $bodyParser = require('body-parser');
-const $logger = require('./logger/logger');
-const { connect: sequelizeConnect, sequelize, } = require('./dbms/sequelize/models');
-const { connect: mongodbConnect, mongoose, } = require('./dbms/mongodb/models');
-
-const $winston = require('winston');
-const $expressWinston = require('express-winston');
-  
 const app = $express();
 
+const $process = require('process');
+const $pug = require('pug');
+const $logger = require('./logger/logger');
+const { connect: sequelizeConnect, } = require('./dbms/sequelize/models');
+const { connect: mongodbConnect, mongoose, } = require('./dbms/mongodb/models');
+
+const $passport = require('passport');
+$passport.serializeUser((user, done) => {
+    console.log('serialize', user);
+    done(null, user);
+});
+$passport.deserializeUser((user, done) => {
+    console.log('deserialize', user);
+    done(null, user);     
+});
+const $session = require('express-session');
+app.use($session({
+    secret: 'secret string',
+    saveUninitialized: false,
+    resave: false,
+}));
+app.use($passport.initialize());
+app.use($passport.session());
+
+const $bodyParser = require('body-parser');
 app.use($bodyParser.urlencoded({ extended: false }));
 app.use($bodyParser.json());
 app.engine('pug', $pug.__express);
 
+// const $winston = require('winston');
+// const $expressWinston = require('express-winston');
 // app.use($expressWinston.logger({
 //     transports: [
 //         new $winston.transports.Console()
@@ -32,6 +49,7 @@ app.engine('pug', $pug.__express);
 //     ignoreRoute: function (req, res) { return false; } // optional: allows to skip some log messages based on request and/or response
 // }));
 
+app.use('/api/v1', require('./routes/auth'));
 app.use('/api/v1/blog', require('./routes/blog'));
 app.use('/api/v1/users', require('./routes/user'));
 app.use(require('./routes/fe'));
