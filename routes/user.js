@@ -4,8 +4,6 @@ const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { validate } = require('./helper');
 
-const $passport = require('passport');
-
 const router = $express.Router({
     caseSensitive: true,
     mergeParams: false,
@@ -13,7 +11,7 @@ const router = $express.Router({
 });
 
 router.get('/users',
-    async (req, res) => {
+    async (req, res, next) => {
         if (req.isAuthenticated()) {
             let users = await Users.findAll({
                 attributes: {
@@ -51,18 +49,6 @@ router.get('/users',
     }
 );
 
-// router.post('/users', async (req, res, next) => {
-//     const { password, email, firstName, lastName } = req.body;
-//     const user = await Users.create({
-//         email, firstName, lastName, password
-//     });
-//     if (user) {
-//         res.json({ data: { ...user.toJSON() } });
-//     } else {
-//         next(new Error('Error param: userId'));
-//     }
-// });
-
 router.get('/users/:userId',
     async (req, res, next) => {
         const userId = +req.params.userId;
@@ -81,28 +67,10 @@ router.get('/users/:userId',
             const { views } = articlesViews.shift() || { views: 0, };
             res.json({ data: { ...user, views } });
         } else {
-            next(new Error('Error param: userId'));
+            next(new Error('Error: userId'));
         }
     }
 );
-
-// router.put('/users/:userId', async (req, res, next) => {
-//     const userId = +req.params.userId;
-//     const { password, email, firstName, lastName } = req.body;
-//     const result = await Users.update({
-//         email, firstName, lastName, password
-//     }, {
-//         where: { id: userId }
-//     });
-//     if (result) {
-//         const user = await Users.findOne({
-//             where: { id: userId }
-//         });
-//         res.json({ data: { ...user.toJSON() } });
-//     } else {
-//         next(new Error('Error param: userId'));
-//     }
-// });
 
 router.put('/profile',
     async (req, res, next) => {
@@ -120,7 +88,7 @@ router.put('/profile',
                 });
                 res.json({ data: { ...user.toJSON() } });
             } else {
-                next(new Error('Error param: userId'));
+                next(new Error('Error: userId'));
             }
         } else {
             next(new Error('Auth error'));

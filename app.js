@@ -18,6 +18,7 @@ $passport.deserializeUser((user, done) => {
     console.log('deserialize', user);
     done(null, user);     
 });
+
 const $session = require('express-session');
 app.use($session({
     secret: 'secret string',

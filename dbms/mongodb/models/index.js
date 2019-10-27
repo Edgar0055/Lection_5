@@ -35,7 +35,7 @@ models.connect = async () => {
         setDefaultsOnInsert: true,
         useFindAndModify: false,
         // new: true,
-        upsert: true,
+        // upsert: true,
     }).map( ([key, value]) => Mongoose.set(key, value));
     await Mongoose.connect(config.connection, options);
 };

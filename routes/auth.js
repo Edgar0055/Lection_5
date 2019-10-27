@@ -11,7 +11,6 @@ const router = $express.Router({
     strict: true
 });
 
-
 const $passport = require('passport');
 const { Strategy: $LocalStrategy, } = require('passport-local');
 $passport.use(new $LocalStrategy({
@@ -28,14 +27,6 @@ $passport.use(new $LocalStrategy({
     }
 }));
 
-
-// POST /api/v1/registration
-// Должен принимать юзера и хешировать пароль
-// После успешного создания юзера мы должна создать сессию использую
-// Passport.js
-// http://www.passportjs.org/docs/login/
-// Вернуть объект юзера в ответе
-
 router.post('/registration',
     async (req, res, next) => {
         console.log('/registration');
@@ -46,7 +37,7 @@ router.post('/registration',
         if (candidate) {
             next(new Error('Busy email. Try else email.'));
         } else {
-            const salt = $bcrypt.genSaltSync(10); //хеш для пароля
+            const salt = $bcrypt.genSaltSync(10);
             const password = req.body.password;
 
             const user = new Users({
@@ -61,24 +52,12 @@ router.post('/registration',
     }
 );
 
-// POST /api/v1/login
-// Должен сравнить передаваемый пароль и в случае успеха создать сессию использую
-// Passport.js
-// http://www.passportjs.org/docs/login/
-// Вернуть объект юзера в ответе
-
 router.post('/login',
-    $passport.authenticate('local', { }), // failureRedirect: '/login'
+    $passport.authenticate('local', { }),
     async (req, res, next) => {
         console.log('/login');
         if (req.isAuthenticated()) {
-            // const privateKey = '12345hreawporibhvejrwjqieqwpofdkvm';
-            // const token = $jwt.sign({
-            //     userName: `${ candidate.firstName } ${ candidate.lastName }`,
-            // }, privateKey, { expiresIn: 60 * 60 }); // expiresIn - время сущ. токена
-
             const { password, ...user } = req.user;
-            // res.header({ token: `Bearer ${token}` });
             res.json({ data: user, });
         } else {
             next(new Error('Auth error'));
@@ -86,14 +65,8 @@ router.post('/login',
     }
 );
 
-// POST /api/v1/logout
-// Разрушить сессию используя
-// Passport.js
-// http://www.passportjs.org/docs/logout/
-// Вернуть пустой ответ
-
 router.post('/logout', 
-    $passport.authenticate('local', { }), // failureRedirect: '/login'
+    $passport.authenticate('local', { }),
     async (req, res, next) => {
         console.log('/logout');
         if (req.isAuthenticated()) {
