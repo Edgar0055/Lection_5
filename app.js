@@ -51,7 +51,7 @@ app.engine('pug', $pug.__express);
 
 app.use('/api/v1', require('./routes/auth'));
 app.use('/api/v1/blog', require('./routes/blog'));
-app.use('/api/v1/users', require('./routes/user'));
+app.use('/api/v1', require('./routes/user'));
 app.use(require('./routes/fe'));
 
 app.use(function (err, req, res, next) {
