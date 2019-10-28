@@ -4,6 +4,7 @@ const $bcrypt = require('bcryptjs');
 const $jwt = require('jsonwebtoken');
 const { Users } = require('../dbms/sequelize/models');
 const { validate } = require('./helper');
+const { loginLimiter, } = require('../lib/limiter');
 
 const router = $express.Router({
     caseSensitive: true,
@@ -15,8 +16,9 @@ const $passport = require('passport');
 const { Strategy: $LocalStrategy, } = require('passport-local');
 $passport.use(new $LocalStrategy({
     usernameField: 'email',
-    passwordField: 'password'
-}, async (email, password, done) => {
+    passwordField: 'password',
+    passReqToCallback: true,
+}, async (req, email, password, done) => {
     try {
         let user = await Users.findOne({ where: { email, } });
         user = user.toJSON();
@@ -29,7 +31,6 @@ $passport.use(new $LocalStrategy({
 
 router.post('/registration',
     async (req, res, next) => {
-        console.log('/registration');
         const candidate = await Users.findOne({ 
             where: { email: req.body.email }
         });
@@ -40,19 +41,25 @@ router.post('/registration',
             const salt = $bcrypt.genSaltSync(10);
             const password = req.body.password;
 
-            const user = new Users({
+            let user = new Users({
                 firstName: req.body.firstName,
                 lastName: req.body.lastName,
                 email: req.body.email,
                 password: $bcrypt.hashSync(password, salt),
             });
-            await user.save();
-            res.json({ data: user });
+            user = await user.save();
+            next();
         }
-    }
+    },
+    $passport.authenticate('local', {}),
+    async (req, res) => {
+        const user = req.user;
+        res.json({ data: user });
+    },
 );
 
 router.post('/login',
+    loginLimiter,
     $passport.authenticate('local', { }),
     async (req, res, next) => {
         console.log('/login');

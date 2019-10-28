@@ -6,6 +6,7 @@ const app = $express();
 const $process = require('process');
 const $pug = require('pug');
 const $logger = require('./logger/logger');
+const { requestsLimiter, } = require('./lib/limiter');
 const { connect: sequelizeConnect, } = require('./dbms/sequelize/models');
 const { connect: mongodbConnect, mongoose, } = require('./dbms/mongodb/models');
 
@@ -33,6 +34,8 @@ app.use($bodyParser.urlencoded({ extended: false }));
 app.use($bodyParser.json());
 app.engine('pug', $pug.__express);
 
+app.set('trust proxy', 1);
+
 // const $winston = require('winston');
 // const $expressWinston = require('express-winston');
 // app.use($expressWinston.logger({
@@ -51,8 +54,8 @@ app.engine('pug', $pug.__express);
 // }));
 
 app.use('/api/v1', require('./routes/auth'));
-app.use('/api/v1/blog', require('./routes/blog'));
-app.use('/api/v1', require('./routes/user'));
+app.use('/api/v1/blog', requestsLimiter, require('./routes/blog'));
+app.use('/api/v1', requestsLimiter, require('./routes/user'));
 app.use(require('./routes/fe'));
 
 app.use(function (err, req, res, next) {
