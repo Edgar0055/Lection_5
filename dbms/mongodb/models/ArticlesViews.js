@@ -28,17 +28,6 @@ schema.index({ views: -1, articleId: 1, }, { background: true, name: 'popularity
 schema.index({ articleId: 1, }, { background: true, });
 schema.index({ authorId: 1, articleId: 1, }, { unique: true, });
 
-schema.method('ag_one', async function () {
-    const { authorId } = this;
-    const result = await ArticlesViews.aggregate()
-        .match({ authorId: { $eq: authorId } })
-        .group({
-            _id: "$authorId",
-            views: { $sum: "$views" }
-        });
-    return result.shift() || {};
-});
-
 const ArticlesViews = model('articles_views', schema);
 
 module.exports.ArticlesViews = ArticlesViews;

@@ -48,21 +48,22 @@ router.post('/registration',
                 password: $bcrypt.hashSync(password, salt),
             });
             user = await user.save();
-            next();
+            user = user.toJSON();
+            req.logIn(user, (error) => {
+                if (error) {
+                    next(new Error(error));
+                } else {
+                    res.json({ data: user });
+                }
+            });
         }
-    },
-    $passport.authenticate('local', {}),
-    async (req, res) => {
-        const user = req.user;
-        res.json({ data: user });
-    },
+    }
 );
 
 router.post('/login',
     loginLimiter,
     $passport.authenticate('local', { }),
     async (req, res, next) => {
-        console.log('/login');
         if (req.isAuthenticated()) {
             const { password, ...user } = req.user;
             res.json({ data: user, });
@@ -73,9 +74,7 @@ router.post('/login',
 );
 
 router.post('/logout', 
-    $passport.authenticate('local', { }),
     async (req, res, next) => {
-        console.log('/logout');
         if (req.isAuthenticated()) {
             req.logOut();
             res.end('success logout');
