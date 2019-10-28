@@ -30,6 +30,7 @@ router.get('/users',
                 group: ['Users.id']
             });
             users = users.map( user => user.toJSON() );
+            // TODO: fix?
             users = users.map( async ( user ) => {
                 const authorId = user.id;
                 const articlesViews = await ArticlesViews.aggregate()
@@ -41,6 +42,7 @@ router.get('/users',
                 const { views } = articlesViews.shift() || { views: 0, };
                 return { ...user, viewsCount: views };
             });
+            // TODO: fix
             users = await Promise.all(users);
             res.json({ data: users });
         } else {
@@ -125,12 +127,14 @@ router.get('/users/:userId/blog',
         });
         if (articles) {
             articles = articles.map( article => article.toJSON() );
+            const authorId = userId;
+            let articlesViewsAll = await ArticlesViews.find({ authorId, }, { views: 1, articleId: 1, });
+            articlesViewsAll = articlesViewsAll.map( ( article ) => article.toJSON() );
+            articlesViewsAll = articlesViewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
+            articlesViewsAll = Object.assign({}, ...articlesViewsAll);
             articles = articles.map( async ( article ) => {
-                const { id: articleId, authorId } = article;
-                const articlesViews = await ArticlesViews.findOne({
-                    articleId, authorId,
-                });
-                const { views } = articlesViews || { views: 0, };
+                const { id: articleId, } = article;
+                const views = articlesViewsAll[ articleId ] || 0;
                 return { ...article, views };
             });
             articles = await Promise.all(articles);
