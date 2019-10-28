@@ -17,13 +17,13 @@ router.get('/',
             order: [['id', 'DESC']]
         });
         articles = articles.map( ( article ) => article.toJSON() );
-        let articlesViewsAll = await ArticlesViews.find({}, { views: 1, articleId: 1, });
-        articlesViewsAll = articlesViewsAll.map( ( article ) => article.toJSON() );
-        articlesViewsAll = articlesViewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
-        articlesViewsAll = Object.assign({}, ...articlesViewsAll);
+        let viewsAll = await ArticlesViews.find({}, { views: 1, articleId: 1, });
+        viewsAll = viewsAll.map( ( item ) => item.toJSON() );
+        viewsAll = viewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
+        viewsAll = Object.assign({}, ...viewsAll);
         articles = articles.map( async ( article ) => {
             const { id: articleId } = article;
-            const views = articlesViewsAll[ articleId ] || 0;
+            const views = viewsAll[ articleId ] || 0;
             return { ...article, views };
         });
         articles = await Promise.all(articles);
