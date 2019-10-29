@@ -9,7 +9,7 @@ const $logger = require('./logger/logger');
 const { requestsLimiter, } = require('./lib/limiter');
 const { connect: sequelizeConnect, } = require('./dbms/sequelize/models');
 const { connect: mongodbConnect, mongoose, } = require('./dbms/mongodb/models');
-const redis = require('./dbms/redis');
+// const redis = require('./dbms/redis');
 
 const $passport = require('passport');
 $passport.serializeUser((user, done) => {
