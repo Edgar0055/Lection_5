@@ -1,29 +1,32 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-    const Users = sequelize.define('Users', {
+    const OAuth_Account = sequelize.define('OAuth_Account', {
         id: {
             allowNull: false,
             autoIncrement: true,
             primaryKey: true,
             type: DataTypes.INTEGER
         },
-        firstName: {
+        provider: {
             allowNull: false,
-            field: 'first_name',
+            field: 'provider',
             type: DataTypes.STRING
         },
-        lastName: {
+        providerUserId: {
             allowNull: false,
-            field: 'last_name',
+            field: 'provider_user_id',
             type: DataTypes.STRING
         },
-        email: {
-            allowNull: false,
-            type: DataTypes.STRING
-        },
-        password: {
-            allowNull: false,
-            type: DataTypes.STRING
+        userId: {
+            allowNull: true,
+            field: 'user_id',
+            references: {
+                model: 'Users', // name of Target model
+                key: 'id' // key in Target model that we're referencing
+            },
+            type: DataTypes.INTEGER,
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
         },
         createdAt: {
             allowNull: false,
@@ -38,27 +41,17 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DATE
         }
     }, {});
-    Users.associate = (models) => {
-        Users.hasMany(models.Articles, {
-            as: 'Articles',
-            foreignKey: {
-                name: 'authorId',
-                allowNull: false
-            },
-            constraints: true,
-            onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
-        });
-        Users.hasMany(models.OAuth_Account, {
-            as: 'OAuth_Account',
+    OAuth_Account.associate = (models) => {
+        OAuth_Account.belongsTo(models.Users, {
+            as: 'user',
             foreignKey: {
                 name: 'userId',
-                allowNull: false
+                allowNull: true
             },
             constraints: true,
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         });
     };
-    return Users;
+    return OAuth_Account;
 };

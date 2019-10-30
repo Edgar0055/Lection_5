@@ -1,6 +1,12 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
     const Articles = sequelize.define('Articles', {
+        id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: DataTypes.INTEGER
+        },
         title: {
             allowNull: false,
             type: DataTypes.STRING,
@@ -53,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false
             },
             constraints: true,
-            onDelete: 'cascade'
+            onDelete: 'CASCADE'
         });
     };
     return Articles;

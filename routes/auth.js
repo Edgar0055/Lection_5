@@ -3,7 +3,7 @@ const $express = require('express');
 const $bcrypt = require('bcryptjs');
 const $jwt = require('jsonwebtoken');
 const $process = require('process');
-const { Users } = require('../dbms/sequelize/models');
+const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
 const { validate } = require('./helper');
 const { loginLimiter, } = require('../lib/limiter');
 
@@ -23,8 +23,7 @@ $passport.use(new $LocalStrategy({
     try {
         let user = await Users.findOne({ where: { email, } });
         user = user.toJSON();
-        const match = user && $bcrypt.compareSync(password, user.password);
-        match ? done(null, user) : done('Auth error');
+        $bcrypt.compareSync(password, user.password) ? done(null, user) : done('Auth error');
     } catch (error) {
         done(error);
     }
@@ -36,56 +35,72 @@ $passport.use(new $GoogleStrategy({
     callbackURL: $process.env.GOOGLE_CALLBACK_URL,
     passReqToCallback: true,
   },
-  function (req, accessToken, refreshToken, profile, next) {
-    // [Arguments] {
-    //     '0': 'ya29.Il-pB_8Q-khKFKZZXz8OBzIdtJxRsalqZD2BMb1DPFpAXGPB4GNgyZgXzAIB6KfwFVtTP3qL_2tBb42_Fg6r5Z0utox9faPEtC7dHCv2aJfdNBho_n74eBuibN66ChtxEQ',
-    //     '1': undefined,
-    //     '2': {
-    //       id: '113893157599878406217',
-    //       displayName: 'Эдгар Ростомян',
-    //       name: { familyName: 'Ростомян', givenName: 'Эдгар' },
-    //       photos: [ [Object] ],
-    //       provider: 'google',
-    //       _raw: '{\n' +
-    //         '  "sub": "113893157599878406217",\n' +
-    //         '  "name": "Эдгар Ростомян",\n' +
-    //         '  "given_name": "Эдгар",\n' +
-    //         '  "family_name": "Ростомян",\n' +
-    //         '  "picture": "https://lh3.googleusercontent.com/-a6vYmnYwLKQ/AAAAAAAAAAI/AAAAAAAAAAA/ACHi3rf6Ehm83yDPDiABpDoHElKhFOosyg/photo.jpg",\n' +
-    //         '  "locale": "ru"\n' +
-    //         '}',
-    //       _json: {
-    //         sub: '113893157599878406217',
-    //         name: 'Эдгар Ростомян',
-    //         given_name: 'Эдгар',
-    //         family_name: 'Ростомян',
-    //         picture: 'https://lh3.googleusercontent.com/-a6vYmnYwLKQ/AAAAAAAAAAI/AAAAAAAAAAA/ACHi3rf6Ehm83yDPDiABpDoHElKhFOosyg/photo.jpg',
-    //         locale: 'ru'
-    //       }
-    //     },
-    //     '3': [Function: verified]
-    //   }
-    console.log(profile);
+  async (req, accessToken, refreshToken, profile, next) => {
+    try {
+        const {
+            id: providerUserId,
+            name: {
+                givenName: firstName,
+                familyName: lastName,
+            },
+            emails,
+            provider,
+        } = profile;
+        const email = emails.sort( (a, b) => b.verified-a.verified ).map( _ => _.value ).shift();
+        const salt = $bcrypt.genSaltSync(10);
+        const password = '1234567890';
+    
+        // 
+        // let user = new Users({
+        //     firstName,
+        //     lastName,
+        //     email,
+        //     password: $bcrypt.hashSync(password, salt),
+        // });
+        // user = await user.save();
+        // user = user.toJSON();
+        // let oauth = {
+        //     provider,
+        //     provider_user_id,
+        //     user_id: user.id,
+        // };
 
-    // const password = '1234567890';
-    // let user = new Users({
-    //     firstName: profile.name.givenName,
-    //     lastName: profile.name.familyName,
-    //     email: profile.emails.sort( (a, b) => b.verified-a.verified ).map( _ => _.value ).shift(),
-    //     password: $bcrypt.hashSync(password, salt),
-    // });
-    // user = await user.save();
-    // user = user.toJSON();
-    // let oauth = {
-    //     provider: profile.provider,
-    //     provider_user_id: profile.id,
-    //     user_id: user.id,
-    // };
+        let [ oauth, oauth_created ] = await OAuth_Account.findOrCreate({
+            where: { provider, providerUserId, },
+            defaults: { userId: null, }
+        });
+        // oauth = oauth.toJSON();
+        console.log( oauth.userId, oauth_created );
 
-    next(null, {});
-    // Users.findOrCreate({ googleId: profile.id }, function (err, user) {
-    //   return next(err, user);
-    // });
+        // oauth_created = false
+        //     userId: null
+        //         create new Users by email
+        //         find and bind by email
+        //     userId: !null
+        //         find by userId
+        // oauth_created = true
+        //     userId: null
+        //         create new Users by email
+        //         find and bind by email
+
+        const where = ( !oauth_created && oauth.userId > 0 ) ? { id: oauth.userId } : { email };
+        let [ user, user_created ] = await Users.findOrCreate({
+            where,
+            defaults: { firstName, lastName, password: $bcrypt.hashSync(password, salt), }
+        });
+        user = user.toJSON();
+        console.log( user, user_created );
+
+        if ( user_created || oauth.userId === null ) {
+            oauth.userId = user.id;
+            await oauth.save();
+        }            
+
+        next(null, user);
+        // done('Auth error');
+    } catch ( error ) {
+        next(new Error( error ))
+    }
   }
 ));
 
