@@ -50,38 +50,10 @@ $passport.use(new $GoogleStrategy({
         const salt = $bcrypt.genSaltSync(10);
         const password = '1234567890';
     
-        // 
-        // let user = new Users({
-        //     firstName,
-        //     lastName,
-        //     email,
-        //     password: $bcrypt.hashSync(password, salt),
-        // });
-        // user = await user.save();
-        // user = user.toJSON();
-        // let oauth = {
-        //     provider,
-        //     provider_user_id,
-        //     user_id: user.id,
-        // };
-
         let [ oauth, oauth_created ] = await OAuth_Account.findOrCreate({
             where: { provider, providerUserId, },
             defaults: { userId: null, }
         });
-        // oauth = oauth.toJSON();
-        console.log( oauth.userId, oauth_created );
-
-        // oauth_created = false
-        //     userId: null
-        //         create new Users by email
-        //         find and bind by email
-        //     userId: !null
-        //         find by userId
-        // oauth_created = true
-        //     userId: null
-        //         create new Users by email
-        //         find and bind by email
 
         const where = ( !oauth_created && oauth.userId > 0 ) ? { id: oauth.userId } : { email };
         let [ user, user_created ] = await Users.findOrCreate({
@@ -89,7 +61,6 @@ $passport.use(new $GoogleStrategy({
             defaults: { firstName, lastName, password: $bcrypt.hashSync(password, salt), }
         });
         user = user.toJSON();
-        console.log( user, user_created );
 
         if ( user_created || oauth.userId === null ) {
             oauth.userId = user.id;
@@ -97,7 +68,6 @@ $passport.use(new $GoogleStrategy({
         }            
 
         next(null, user);
-        // done('Auth error');
     } catch ( error ) {
         next(new Error( error ))
     }
