@@ -3,6 +3,7 @@ const $express = require('express');
 const { Articles, Users } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
 const { validate } = require('./helper');
+const { isAuth } = require('../lib/passport');
 
 const router = $express.Router({
     caseSensitive: true,
@@ -21,42 +22,34 @@ router.get('/',
         viewsAll = viewsAll.map( ( item ) => item.toJSON() );
         viewsAll = viewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
         viewsAll = Object.assign({}, ...viewsAll);
-        articles = articles.map( async ( article ) => {
+        articles = articles.map( ( article ) => {
             const { id: articleId } = article;
             const views = viewsAll[ articleId ] || 0;
             return { ...article, views };
         });
-        articles = await Promise.all(articles);
         res.json({ data: articles });
     }
 );
 
 router.post('/',
+    isAuth(),
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            const userId = req.user.id;
-            const { title, content, publishedAt } = req.body;
-            const authorId = userId;
-            let article = await Articles.create({
-                title, content, authorId, publishedAt
+        const userId = req.user.id;
+        const { title, content, publishedAt } = req.body;
+        const authorId = userId;
+        let article = await Articles.create({
+            title, content, authorId, publishedAt
+        });
+        if (article) {
+            article = article.toJSON();
+            const { id: articleId, authorId } = article;
+            const articlesViews = await ArticlesViews.create({
+                articleId, authorId, views: 0,
             });
-            if (article) {
-                article = article.toJSON();
-                const { id: articleId, authorId } = article;
-                const articlesViews = await ArticlesViews.findOneAndUpdate({
-                    articleId,
-                }, {
-                    authorId, views: 0,
-                }, {
-                    new: true, upsert: true,
-                });
-                const { views } = articlesViews || { views: 0 };
-                res.json({ data: { ...article, views } });
-            } else {
-                next(new Error('Error: userId'));
-            }
+            const { views } = articlesViews || { views: 0 };
+            res.json({ data: { ...article, views } });
         } else {
-            next(new Error('Auth error'));
+            next(new Error('Error: userId'));
         }
     }
 );
@@ -70,11 +63,11 @@ router.get('/:blogId',
         });
         if (article) {
             article = article.toJSON();
-            const { id: articleId, authorId } = article;
+            const { id: articleId, } = article;
             const articlesViews = await ArticlesViews.findOneAndUpdate({
                 articleId,
             }, {
-                authorId, $inc: { views: 1, }
+                $inc: { views: 1, }
             }, {
                 new: true, upsert: true,
             });
@@ -87,65 +80,59 @@ router.get('/:blogId',
 );
 
 router.put('/:blogId',
+    isAuth(),
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            const userId = req.user.id;
-            const blogId = +req.params.blogId;
-            const { title, content, publishedAt } = req.body;
-            const result = await Articles.update({
-                title, content, publishedAt
-            }, {
-                where: { id: blogId, authorId: userId, }
+        const userId = req.user.id;
+        const blogId = +req.params.blogId;
+        const { title, content, publishedAt } = req.body;
+        const result = await Articles.update({
+            title, content, publishedAt
+        }, {
+            where: { id: blogId, authorId: userId, }
+        });
+        if (result) {
+            let article = await Articles.findOne({
+                where: { id: blogId }
             });
-            if (result) {
-                let article = await Articles.findOne({
-                    where: { id: blogId }
-                });
-                article = article.toJSON();
-                const { id: articleId, authorId } = article;
-                const articlesViews = await ArticlesViews.findOneAndUpdate({
-                    articleId,
-                }, {
-                    authorId, views: 0,
-                }, {
-                    new: true, upsert: true,
-                });
-                const { views } = articlesViews || { views: 0 };
-                res.json({ data: { ...article, views } });
-            } else {
-                next(new Error('Error: blogId or authorId'));
-            }
+            article = article.toJSON();
+            const { id: articleId, } = article;
+            const articlesViews = await ArticlesViews.findOneAndUpdate({
+                articleId,
+            }, {
+                views: 0,
+            }, {
+                new: true, upsert: true,
+            });
+            const { views } = articlesViews || { views: 0 };
+            res.json({ data: { ...article, views } });
         } else {
-            next(new Error('Auth error'));
+            next(new Error('Error: blogId or authorId'));
         }
     }
 );
 
 router.delete('/:blogId',
+    isAuth(),
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            const userId = req.user.id;
-            const blogId = +req.params.blogId;
-            let article = await Articles.findOne({
+        const userId = req.user.id;
+        const blogId = +req.params.blogId;
+        let article = await Articles.findOne({
+            where: { id: blogId }
+        });
+        article = article.toJSON();
+        if (userId!==article.authorId) {
+            next(new Error('Error: authorId'));
+        } else {
+            const result = await Articles.destroy({
                 where: { id: blogId }
             });
-            article = article.toJSON();
-            if (userId!==article.authorId) {
-                next(new Error('Error: authorId'));
+            if (result) {
+                const { id: articleId, } = article;
+                await ArticlesViews.deleteMany({ articleId, });
+                res.end();
             } else {
-                const result = await Articles.destroy({
-                    where: { id: blogId }
-                });
-                if (result) {
-                    const { id: articleId, } = article;
-                    await ArticlesViews.deleteMany({ articleId, });
-                    res.end();
-                } else {
-                    next(new Error('Error param: blogId'));
-                }    
-            }
-        } else {
-            next(new Error('Auth error'));
+                next(new Error('Error param: blogId'));
+            }    
         }
     }
 );

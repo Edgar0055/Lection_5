@@ -3,6 +3,7 @@ const $express = require('express');
 const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { validate } = require('./helper');
+const { isAuth } = require('../lib/passport');
 
 const router = $express.Router({
     caseSensitive: true,
@@ -12,42 +13,37 @@ const router = $express.Router({
 
 router.get('/users',
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            let users = await Users.findAll({
-                attributes: {
-                    include: [
-                        [
-                            sequelize.fn('COUNT', sequelize.col('author_id')),
-                            'articlesCount'
-                        ]
+        let users = await Users.findAll({
+            attributes: {
+                include: [
+                    [
+                        sequelize.fn('COUNT', sequelize.col('author_id')),
+                        'articlesCount'
                     ]
-                },
-                include: [{
-                    model: Articles,
-                    as: 'Articles',
-                    attributes: []
-                }],
-                group: ['Users.id']
-            });
-            users = users.map( user => user.toJSON() );
-            let viewsAll = await ArticlesViews.aggregate([{
-                $group: {
-                    _id: "$authorId",
-                    views: { $sum: "$views" }
-                }
-            }]);
-            viewsAll = viewsAll.map( ( { _id, views } ) => ( { [ _id ]: views } ) );
-            viewsAll = Object.assign({}, ...viewsAll);
-            users = users.map( async ( user ) => {
-                const authorId = user.id;
-                const views = viewsAll[ authorId ] || 0;
-                return { ...user, viewsCount: views };
-            });
-            users = await Promise.all(users);
-            res.json({ data: users });
-        } else {
-            next(new Error('Auth error'));
-        }
+                ]
+            },
+            include: [{
+                model: Articles,
+                as: 'Articles',
+                attributes: []
+            }],
+            group: ['Users.id']
+        });
+        users = users.map( user => user.toJSON() );
+        let viewsAll = await ArticlesViews.aggregate([{
+            $group: {
+                _id: "$authorId",
+                views: { $sum: "$views" }
+            }
+        }]);
+        viewsAll = viewsAll.map( ( { _id, views } ) => ( { [ _id ]: views } ) );
+        viewsAll = Object.assign({}, ...viewsAll);
+        users = users.map( ( user ) => {
+            const authorId = user.id;
+            const views = viewsAll[ authorId ] || 0;
+            return { ...user, viewsCount: views };
+        });
+        res.json({ data: users });
     }
 );
 
@@ -75,44 +71,38 @@ router.get('/users/:userId',
 );
 
 router.put('/profile',
+    isAuth(),
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            const userId = req.user.id;
-            const { firstName, lastName } = req.body;
-            const result = await Users.update({
-                firstName, lastName,
-            }, {
+        const userId = req.user.id;
+        const { firstName, lastName } = req.body;
+        const result = await Users.update({
+            firstName, lastName,
+        }, {
+            where: { id: userId }
+        });
+        if (result) {
+            const user = await Users.findOne({
                 where: { id: userId }
             });
-            if (result) {
-                const user = await Users.findOne({
-                    where: { id: userId }
-                });
-                res.json({ data: { ...user.toJSON() } });
-            } else {
-                next(new Error('Error: userId'));
-            }
+            res.json({ data: { ...user.toJSON() } });
         } else {
-            next(new Error('Auth error'));
+            next(new Error('Error: userId'));
         }
     }
 );
 
 router.delete('/profile',
+    isAuth(),
     async (req, res, next) => {
-        if (req.isAuthenticated()) {
-            const userId = req.user.id;
-            const result = await Users.destroy({
-                where: { id: userId }
-            });
-            if (result) {
-                await ArticlesViews.deleteMany({ authorId: userId, });
-                res.end();
-            } else {
-                next(new Error('Error param: userId'));
-            }
+        const userId = req.user.id;
+        const result = await Users.destroy({
+            where: { id: userId }
+        });
+        if (result) {
+            await ArticlesViews.deleteMany({ authorId: userId, });
+            res.end();
         } else {
-            next(new Error('Auth error'));
+            next(new Error('Error param: userId'));
         }
     }
 );
@@ -132,12 +122,11 @@ router.get('/users/:userId/blog',
             viewsAll = viewsAll.map( ( article ) => article.toJSON() );
             viewsAll = viewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
             viewsAll = Object.assign({}, ...viewsAll);
-            articles = articles.map( async ( article ) => {
+            articles = articles.map( ( article ) => {
                 const { id: articleId, } = article;
                 const views = viewsAll[ articleId ] || 0;
                 return { ...article, views };
             });
-            articles = await Promise.all(articles);
             res.json({ data: articles });
         } else {
             next(new Error('Error param: userId'));

@@ -20,13 +20,13 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
+    "connect-redis": "^4.0.3",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "express-rate-limit": "^5.0.0",
     "express-session": "^1.17.0",
     "express-winston": "^4.0.1",
     "https": "^1.0.0",
-    "ioredis": "^4.14.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.7.5",
     "mysql2": "^1.7.0",
@@ -37,6 +37,8 @@
     "passport-local": "^1.0.0",
     "process": "^0.11.10",
     "pug": "^2.0.4",
+    "rate-limit-redis": "^1.6.0",
+    "redis": "^2.8.0",
     "sequelize": "^5.19.4",
     "winston": "^3.2.1",
     "winston-mongodb": "^5.0.0"
