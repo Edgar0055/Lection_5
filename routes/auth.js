@@ -69,7 +69,7 @@ router.post('/registration',
             user = user.toJSON();
             req.logIn(user, (error) => {
                 if (error) {
-                    next(new Error(error));
+                    next( error );
                 } else {
                     res.json({ data: user });
                 }

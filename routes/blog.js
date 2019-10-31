@@ -114,21 +114,19 @@ router.put('/:blogId',
 router.delete('/:blogId',
     isAuth(),
     async (req, res, next) => {
-        const userId = req.user.id;
+        const userId = +req.user.id;
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
-            where: { id: blogId }
+            where: { id: blogId, authorId: userId }
         });
-        article = article.toJSON();
-        if (userId!==article.authorId) {
+        if ( !article ) {
+            next(new Error('Error: blogId'));
+        } else if (userId!==article.authorId) {
             next(new Error('Error: authorId'));
         } else {
-            const result = await Articles.destroy({
-                where: { id: blogId }
-            });
+            const result = await article.destroy();
             if (result) {
-                const { id: articleId, } = article;
-                await ArticlesViews.deleteMany({ articleId, });
+                await ArticlesViews.deleteMany({ articleId: blogId, });
                 res.end();
             } else {
                 next(new Error('Error param: blogId'));

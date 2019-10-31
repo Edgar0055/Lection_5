@@ -27,7 +27,6 @@ app.use($session({
     saveUninitialized: false,
     resave: false,
     cookie: {
-        // secure: true, // !!! frontend-defect
         maxAge: 60 * 1000 * 10,
     },
 }));
