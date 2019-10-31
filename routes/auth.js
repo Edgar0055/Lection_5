@@ -75,6 +75,53 @@ $passport.use(new $GoogleStrategy({
   }
 ));
 
+const { Strategy: $FacebookStrategy, } = require('passport-facebook');
+$passport.use(new $FacebookStrategy({
+    clientID: $process.env.FACEBOOK_CLIENT_ID,
+    clientSecret: $process.env.FACEBOOK_CLIENT_SECRET,
+    callbackURL: $process.env.FACEBOOK_CALLBACK_URL,
+    passReqToCallback: true,
+    profileFields: ['id', 'email', 'name'],
+  },
+  async (req, accessToken, refreshToken, profile, next) => {
+    try {
+        const {
+            id: providerUserId,
+            name: {
+                givenName: firstName,
+                familyName: lastName,
+            },
+            emails,
+            provider,
+        } = profile;
+        const email = emails.map( _ => _.value ).shift();
+        const salt = await $bcrypt.genSalt(10);
+        const password = '';
+    
+        let [ oauth, oauth_created ] = await OAuth_Account.findOrCreate({
+            where: { provider, providerUserId, },
+            defaults: { userId: null, }
+        });
+
+        const where = ( !oauth_created && oauth.userId > 0 ) ? { id: oauth.userId } : { email };
+        let [ user, user_created ] = await Users.findOrCreate({
+            where,
+            defaults: { firstName, lastName, password: await $bcrypt.hash(password, salt), }
+        });
+        user = user.toJSON();
+
+        if ( user_created || oauth.userId === null ) {
+            oauth.userId = user.id;
+            await oauth.save();
+        }            
+
+        next(null, user);
+    } catch ( error ) {
+        next(new Error( error ))
+    }
+  }
+));
+
 router.post('/registration',
     async (req, res, next) => {
         const candidate = await Users.findOne({ 
@@ -131,5 +178,18 @@ router.post('/oauth/google/callback',
         res.json({ data: user, });
     }
 );
+
+router.get('/oauth/facebook',
+    $passport.authenticate('facebook', { scope: [ 'email' ] })
+);
+
+router.post('/oauth/facebook/callback',
+    $passport.authenticate('facebook', { }),
+    async (req, res, next) => {
+        const { password, ...user } = req.user;
+        res.json({ data: user, });
+    }
+);
+
 
 module.exports = router;
