@@ -7,6 +7,7 @@ const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
 const { validate } = require('./helper');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
+const { providerLogin } = require('../lib/passport/provider');
 
 const router = $express.Router({
     caseSensitive: true,
@@ -36,43 +37,7 @@ $passport.use(new $GoogleStrategy({
     callbackURL: $process.env.GOOGLE_CALLBACK_URL,
     passReqToCallback: true,
   },
-  async (req, accessToken, refreshToken, profile, next) => {
-    try {
-        const {
-            id: providerUserId,
-            name: {
-                givenName: firstName,
-                familyName: lastName,
-            },
-            emails,
-            provider,
-        } = profile;
-        const email = emails.sort( (a, b) => b.verified-a.verified ).map( _ => _.value ).shift();
-        const salt = await $bcrypt.genSalt(10);
-        const password = '';
-    
-        let [ oauth, oauth_created ] = await OAuth_Account.findOrCreate({
-            where: { provider, providerUserId, },
-            defaults: { userId: null, }
-        });
-
-        const where = ( !oauth_created && oauth.userId > 0 ) ? { id: oauth.userId } : { email };
-        let [ user, user_created ] = await Users.findOrCreate({
-            where,
-            defaults: { firstName, lastName, password: await $bcrypt.hash(password, salt), }
-        });
-        user = user.toJSON();
-
-        if ( user_created || oauth.userId === null ) {
-            oauth.userId = user.id;
-            await oauth.save();
-        }            
-
-        next(null, user);
-    } catch ( error ) {
-        next(new Error( error ))
-    }
-  }
+  providerLogin,
 ));
 
 const { Strategy: $FacebookStrategy, } = require('passport-facebook');
@@ -83,43 +48,7 @@ $passport.use(new $FacebookStrategy({
     passReqToCallback: true,
     profileFields: ['id', 'email', 'name'],
   },
-  async (req, accessToken, refreshToken, profile, next) => {
-    try {
-        const {
-            id: providerUserId,
-            name: {
-                givenName: firstName,
-                familyName: lastName,
-            },
-            emails,
-            provider,
-        } = profile;
-        const email = emails.map( _ => _.value ).shift();
-        const salt = await $bcrypt.genSalt(10);
-        const password = '';
-    
-        let [ oauth, oauth_created ] = await OAuth_Account.findOrCreate({
-            where: { provider, providerUserId, },
-            defaults: { userId: null, }
-        });
-
-        const where = ( !oauth_created && oauth.userId > 0 ) ? { id: oauth.userId } : { email };
-        let [ user, user_created ] = await Users.findOrCreate({
-            where,
-            defaults: { firstName, lastName, password: await $bcrypt.hash(password, salt), }
-        });
-        user = user.toJSON();
-
-        if ( user_created || oauth.userId === null ) {
-            oauth.userId = user.id;
-            await oauth.save();
-        }            
-
-        next(null, user);
-    } catch ( error ) {
-        next(new Error( error ))
-    }
-  }
+  providerLogin,
 ));
 
 router.post('/registration',
