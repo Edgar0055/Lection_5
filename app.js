@@ -26,7 +26,10 @@ app.use($session({
     store: new ( $redisStore($session) )({ client: $redisClient }),
     saveUninitialized: false,
     resave: false,
-    cookie: { secure: true, maxAge: 60 * 1000 * 10, },
+    cookie: {
+        // secure: true, // !!! frontend-defect
+        maxAge: 60 * 1000 * 10,
+    },
 }));
 app.use($passport.initialize());
 app.use($passport.session());
