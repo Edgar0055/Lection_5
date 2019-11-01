@@ -4,7 +4,7 @@ const $bcrypt = require('bcryptjs');
 const $jwt = require('jsonwebtoken');
 const $process = require('process');
 const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
-const { validate } = require('./helper');
+const { bodySafe, validate } = require('./helper');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
 const { providerLogin } = require('../lib/passport/provider');
@@ -23,9 +23,12 @@ $passport.use(new $LocalStrategy({
     passReqToCallback: true,
 }, async (req, email, password, done) => {
     try {
-        let user = await Users.findOne({ where: { email, } });
-        user = user.toJSON();
-        await $bcrypt.compare(password, user.password) ? done(null, user) : done('Auth error');
+        const user = await Users.findOne({ where: { email, } });
+        if ( await $bcrypt.compare(password, user.password) ) {
+            done( null, user.toJSON() );
+        } else {
+            done('Auth error');
+        }
     } catch (error) {
         done(error);
     }
@@ -53,29 +56,28 @@ $passport.use(new $FacebookStrategy({
 
 router.post('/registration',
     async (req, res, next) => {
-        const candidate = await Users.findOne({ 
-            where: { email: req.body.email }
-        });
-        if ( !candidate ) {
+        try {
+            const body = bodySafe( req.body, 'firstName lastName email password' );
+            const candidate = await Users.findOne( {
+                where: { email: body.email, }
+            } );
+            if ( candidate ) {
+                throw new Error('Busy email. Try else email.');
+            }
             const salt = await $bcrypt.genSalt(10);
-            const password = req.body.password;
-
-            let user = await Users.create({
-                firstName: req.body.firstName,
-                lastName: req.body.lastName,
-                email: req.body.email,
-                password: await $bcrypt.hash(password, salt),
+            const user = await Users.create({
+                ...body,
+                password: await $bcrypt.hash( body.password, salt ),
             });
-            user = user.toJSON();
-            req.logIn(user, (error) => {
-                if (error) {
+            req.logIn( user.toJSON(), ( error ) => {
+                if ( error ) {
                     next( error );
                 } else {
                     res.json({ data: user });
                 }
-            });
-        } else {
-            next(new Error('Busy email. Try else email.'));
+            } );
+        } catch ( error ) {
+            next( error );
         }
     }
 );
@@ -97,7 +99,7 @@ router.post('/logout',
 );
 
 router.get('/oauth/google',
-    $passport.authenticate('google', { scope: ['profile', 'email'] })
+    $passport.authenticate('google', { scope: [ 'profile', 'email' ] })
 );
 
 router.post('/oauth/google/callback',

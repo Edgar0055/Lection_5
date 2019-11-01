@@ -2,7 +2,7 @@
 const $express = require('express');
 const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { validate } = require('./helper');
+const { bodySafe, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
 
 const router = $express.Router({
@@ -13,49 +13,52 @@ const router = $express.Router({
 
 router.get('/users',
     async (req, res, next) => {
-        let users = await Users.findAll({
-            attributes: {
-                include: [
-                    [
-                        sequelize.fn('COUNT', sequelize.col('author_id')),
-                        'articlesCount'
+        try {
+            let viewsAll = await ArticlesViews.aggregate([{
+                $group: {
+                    _id: "$authorId",
+                    views: { $sum: "$views" }
+                }
+            }]);
+            viewsAll = viewsAll.map( article => ( {
+                [ article._id ]: article.views,
+            } ) );
+            viewsAll = Object.assign({}, ...viewsAll);
+            let users = await Users.findAll({
+                attributes: {
+                    include: [
+                        [
+                            sequelize.fn('COUNT', sequelize.col('author_id')),
+                            'articlesCount'
+                        ]
                     ]
-                ]
-            },
-            include: [{
-                model: Articles,
-                as: 'Articles',
-                attributes: []
-            }],
-            group: ['Users.id']
-        });
-        users = users.map( user => user.toJSON() );
-        let viewsAll = await ArticlesViews.aggregate([{
-            $group: {
-                _id: "$authorId",
-                views: { $sum: "$views" }
-            }
-        }]);
-        viewsAll = viewsAll.map( ( { _id, views } ) => ( { [ _id ]: views } ) );
-        viewsAll = Object.assign({}, ...viewsAll);
-        users = users.map( ( user ) => {
-            const authorId = user.id;
-            const views = viewsAll[ authorId ] || 0;
-            return { ...user, viewsCount: views };
-        });
-        res.json({ data: users });
+                },
+                include: [{
+                    model: Articles,
+                    as: 'Articles',
+                    attributes: []
+                }],
+                group: ['Users.id']
+            });
+            users = users.map( user => ( {
+                ...user.toJSON(),
+                viewsCount: viewsAll[ user.id ] || 0,
+            } ) );
+            res.json({ data: users });
+        } catch ( error ) {
+            console.log( '!!', error );
+            next( error );
+        }
     }
 );
 
 router.get('/users/:userId',
     async (req, res, next) => {
-        const userId = +req.params.userId;
-        let user = await Users.findOne({
-            where: { id: userId }
-        });
-        if (user) {
-            user = user.toJSON();
-            const authorId = user.id;
+        try {
+            const authorId = +req.params.userId;
+            let user = await Users.findOne({
+                where: { id: authorId }
+            });            
             const articlesViews = await ArticlesViews.aggregate()
                 .match({ authorId: { $eq: authorId } })
                 .group({
@@ -63,9 +66,9 @@ router.get('/users/:userId',
                     views: { $sum: "$views" }
                 });
             const { views } = articlesViews.shift() || { views: 0, };
-            res.json({ data: { ...user, views } });
-        } else {
-            next(new Error('Error: userId'));
+            res.json({ data: { ...user.toJSON(), views } });
+        } catch ( error ) {
+            next( error );
         }
     }
 );
@@ -73,20 +76,20 @@ router.get('/users/:userId',
 router.put('/profile',
     isAuth(),
     async (req, res, next) => {
-        const userId = req.user.id;
-        const { firstName, lastName } = req.body;
-        const result = await Users.update({
-            firstName, lastName,
-        }, {
-            where: { id: userId }
-        });
-        if (result) {
+        try {
+            const userId = +req.user.id;
+            const body = bodySafe( req.body, 'firstName lastName' );
+            await Users.update({
+                ...body,
+            }, {
+                where: { id: userId }
+            });
             const user = await Users.findOne({
                 where: { id: userId }
             });
             res.json({ data: { ...user.toJSON() } });
-        } else {
-            next(new Error('Error: userId'));
+        } catch ( error ) {
+            next( error );
         }
     }
 );
@@ -94,42 +97,45 @@ router.put('/profile',
 router.delete('/profile',
     isAuth(),
     async (req, res, next) => {
-        const userId = req.user.id;
-        const result = await Users.destroy({
-            where: { id: userId }
-        });
-        if (result) {
-            await ArticlesViews.deleteMany({ authorId: userId, });
+        try {
+            const authorId = +req.user.id;
+            await Users.destroy({
+                where: { id: authorId, }
+            });
+            await ArticlesViews.deleteMany({ authorId, });
             res.end();
-        } else {
-            next(new Error('Error param: userId'));
+        } catch ( error ) {
+            next( error );
         }
     }
 );
 
 router.get('/users/:userId/blog',
     async (req, res, next) => {
-        const userId = +req.params.userId;
-        let articles = await Articles.findAll({
-            where: { authorId: userId },
-            include: [{ model: Users, as: 'author' }],
-            order: [['updated_at', 'DESC']]
-        });
-        if (articles) {
-            articles = articles.map( article => article.toJSON() );
-            const authorId = userId;
-            let viewsAll = await ArticlesViews.find({ authorId, }, { views: 1, articleId: 1, });
-            viewsAll = viewsAll.map( ( article ) => article.toJSON() );
-            viewsAll = viewsAll.map( ( { articleId, views } ) => ( { [ articleId ]: views } ) );
+        try {
+            const authorId = +req.params.userId;
+            let viewsAll = await ArticlesViews.find({
+                authorId,
+            }, {
+                views: 1,
+                articleId: 1,
+            } );
+            viewsAll = viewsAll.map( article => ( {
+                [ article.articleId ]: article.views
+            } ) );
             viewsAll = Object.assign({}, ...viewsAll);
-            articles = articles.map( ( article ) => {
-                const { id: articleId, } = article;
-                const views = viewsAll[ articleId ] || 0;
-                return { ...article, views };
-            });
+            let articles = await Articles.findAll({
+                where: { authorId, },
+                include: [ { model: Users, as: 'author' } ],
+                order: [ ['updated_at', 'DESC'] ],
+            } );
+            articles = articles.map( article => ( {
+                ...article.toJSON(),
+                views: viewsAll[ article.id ] || 0,
+            } ) );
             res.json({ data: articles });
-        } else {
-            next(new Error('Error param: userId'));
+        } catch ( error ) {
+            next( error );
         }
     }
 );
