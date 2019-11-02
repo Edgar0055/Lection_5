@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
+const asyncHandler = require('express-async-handler');
 const $bcrypt = require('bcryptjs');
 const $jwt = require('jsonwebtoken');
 const $process = require('process');
@@ -55,32 +56,28 @@ $passport.use(new $FacebookStrategy({
 ));
 
 router.post('/registration',
-    async (req, res, next) => {
-        try {
-            const body = bodySafe( req.body, 'firstName lastName email password' );
-            const candidate = await Users.findOne( {
-                where: { email: body.email, }
-            } );
-            if ( candidate ) {
-                throw new Error('Busy email. Try else email.');
-            }
-            const salt = await $bcrypt.genSalt(10);
-            const user = await Users.create({
-                ...body,
-                password: await $bcrypt.hash( body.password, salt ),
-            });
-            req.logIn( user.toJSON(), ( error ) => {
-                if ( error ) {
-                    next( error );
-                } else {
-                    res.json({ data: user });
-                }
-            } );
-        } catch ( error ) {
-            next( error );
+    asyncHandler(async (req, res, next) => {
+        const body = bodySafe( req.body, 'firstName lastName email password' );
+        const candidate = await Users.findOne( {
+            where: { email: body.email, }
+        } );
+        if ( candidate ) {
+            throw new Error('Busy email. Try else email.');
         }
+        const salt = await $bcrypt.genSalt(10);
+        const user = await Users.create({
+            ...body,
+            password: await $bcrypt.hash( body.password, salt ),
+        });
+        req.logIn( user.toJSON(), ( error ) => {
+            if ( error ) {
+                next( error );
+            } else {
+                res.json({ data: user });
+            }
+        });
     }
-);
+));
 
 router.post('/login',
     loginLimiter,
@@ -121,6 +118,5 @@ router.post('/oauth/facebook/callback',
         res.json({ data: user, });
     }
 );
-
 
 module.exports = router;
