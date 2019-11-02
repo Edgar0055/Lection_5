@@ -22,18 +22,14 @@ $passport.use(new $LocalStrategy({
     usernameField: 'email',
     passwordField: 'password',
     passReqToCallback: true,
-}, async (req, email, password, done) => {
-    try {
-        const user = await Users.findOne({ where: { email, } });
-        if ( await $bcrypt.compare(password, user.password) ) {
-            done( null, user.toJSON() );
-        } else {
-            done('Auth error');
-        }
-    } catch (error) {
-        done(error);
+}, asyncHandler(async (req, email, password, next) => {
+    const user = await Users.findOne({ where: { email, } });
+    if ( await $bcrypt.compare(password, user.password) ) {
+        next( null, user.toJSON() );
+    } else {
+        throw new Error('Auth error');
     }
-}));
+})));
 const { Strategy: $GoogleStrategy } = require('passport-google-oauth20');
 $passport.use(new $GoogleStrategy({
     clientID: $process.env.GOOGLE_CLIENT_ID,
@@ -41,7 +37,7 @@ $passport.use(new $GoogleStrategy({
     callbackURL: $process.env.GOOGLE_CALLBACK_URL,
     passReqToCallback: true,
   },
-  providerLogin,
+  asyncHandler(providerLogin),
 ));
 
 const { Strategy: $FacebookStrategy, } = require('passport-facebook');
@@ -52,7 +48,7 @@ $passport.use(new $FacebookStrategy({
     passReqToCallback: true,
     profileFields: ['id', 'email', 'name'],
   },
-  providerLogin,
+  asyncHandler(providerLogin),
 ));
 
 router.post('/registration',
@@ -82,17 +78,17 @@ router.post('/registration',
 router.post('/login',
     loginLimiter,
     $passport.authenticate('local', { }),
-    async (req, res, next) => {
+    asyncHandler(async (req, res, next) => {
         const { password, ...user } = req.user;
         res.json({ data: user, });
-    }
+    })
 );
 
 router.post('/logout',
-    async (req, res, next) => {
+    asyncHandler(async (req, res, next) => {
         req.logOut();
         res.status(401).end('success logout');
-    }
+    })
 );
 
 router.get('/oauth/google',
@@ -101,10 +97,10 @@ router.get('/oauth/google',
 
 router.post('/oauth/google/callback',
     $passport.authenticate('google', { }),
-    async (req, res, next) => {
+    asyncHandler(async (req, res, next) => {
         const { password, ...user } = req.user;
         res.json({ data: user, });
-    }
+    })
 );
 
 router.get('/oauth/facebook',
@@ -113,10 +109,10 @@ router.get('/oauth/facebook',
 
 router.post('/oauth/facebook/callback',
     $passport.authenticate('facebook', { }),
-    async (req, res, next) => {
+    asyncHandler(async (req, res, next) => {
         const { password, ...user } = req.user;
         res.json({ data: user, });
-    }
+    })
 );
 
 module.exports = router;

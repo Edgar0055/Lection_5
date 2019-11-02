@@ -46,6 +46,7 @@ app.use('/api/v1', requestsLimiter, require('./routes/user'));
 app.use(require('./routes/fe'));
 
 app.use(function (err, req, res, next) {
+    $logger.actionLogger.error(`${err}`);
     res.status(401).send('Something broke!');
 });
 

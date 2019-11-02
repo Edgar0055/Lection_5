@@ -70,14 +70,11 @@ router.put('/profile',
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
         const body = bodySafe( req.body, 'firstName lastName' );
-        await Users.update({
-            ...body,
-        }, {
-            where: { id: userId }
-        });
-        const user = await Users.findOne({
-            where: { id: userId }
-        });
+        const user = await Users.findByPk(userId);
+        if ( !user ) {
+            throw new Error('User not found');
+        }
+        await user.update({ ...body });
         res.json({ data: { ...user.toJSON() } });
     }
 ));

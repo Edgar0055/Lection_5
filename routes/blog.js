@@ -69,17 +69,13 @@ router.get('/:blogId',
 router.put('/:blogId',
     isAuth(),
     asyncHandler(async (req, res, next) => {
-        const userId = +req.user.id;
+        const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
-        await Articles.update({
-            ...body,
-        }, {
-            where: { id: blogId, authorId: userId, }
+        const article = await Articles.findOne({
+            where: { id: blogId, authorId, }
         });
-        let article = await Articles.findOne({
-            where: { id: blogId }
-        });
+        await article.update({ ...body, });
         const articlesViews = await ArticlesViews.findOneAndUpdate({
             articleId: article.id,
         }, {
