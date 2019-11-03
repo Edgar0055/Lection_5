@@ -22,14 +22,18 @@ $passport.use(new $LocalStrategy({
     usernameField: 'email',
     passwordField: 'password',
     passReqToCallback: true,
-}, asyncHandler(async (req, email, password, next) => {
-    const user = await Users.findOne({ where: { email, } });
-    if ( await $bcrypt.compare(password, user.password) ) {
-        next( null, user.toJSON() );
-    } else {
-        throw new Error('Auth error');
+}, async (req, email, password, next) => {
+    try {
+        const user = await Users.findOne({ where: { email, } });
+        if ( await $bcrypt.compare(password, user.password) ) {
+            next( null, user.toJSON() );
+        } else {
+            throw new Error('Auth error');
+        }   
+    } catch ( error ) {
+        next( error );
     }
-})));
+}));
 const { Strategy: $GoogleStrategy } = require('passport-google-oauth20');
 $passport.use(new $GoogleStrategy({
     clientID: $process.env.GOOGLE_CLIENT_ID,
@@ -37,7 +41,7 @@ $passport.use(new $GoogleStrategy({
     callbackURL: $process.env.GOOGLE_CALLBACK_URL,
     passReqToCallback: true,
   },
-  asyncHandler(providerLogin),
+  providerLogin,
 ));
 
 const { Strategy: $FacebookStrategy, } = require('passport-facebook');
@@ -48,7 +52,7 @@ $passport.use(new $FacebookStrategy({
     passReqToCallback: true,
     profileFields: ['id', 'email', 'name'],
   },
-  asyncHandler(providerLogin),
+  providerLogin,
 ));
 
 router.post('/registration',

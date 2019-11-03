@@ -40,11 +40,11 @@ router.get('/users',
             }],
             group: ['Users.id']
         });
-        users = users.map( user => ( {
-            ...user.toJSON(),
-            viewsCount: viewsAll[ user.id ] || 0,
-        } ) );
-        res.json({ data: users });
+        users = users.map( user => {
+            user.viewsCount = viewsAll[ user.id ] || 0;
+            return user;
+        } );
+        res.send({ data: users });
     }
 ));
 
@@ -61,7 +61,8 @@ router.get('/users/:userId',
                 views: { $sum: "$views" }
             });
         const { views } = articlesViews.shift() || { views: 0, };
-        res.json({ data: { ...user.toJSON(), views } });
+        user.views = views;
+        res.send({ data: user });
     }
 ));
 
@@ -70,12 +71,12 @@ router.put('/profile',
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
         const body = bodySafe( req.body, 'firstName lastName' );
-        const user = await Users.findByPk(userId);
+        const user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
-        await user.update({ ...body });
-        res.json({ data: { ...user.toJSON() } });
+        await user.update( body );
+        res.send({ data: user });
     }
 ));
 
@@ -109,11 +110,11 @@ router.get('/users/:userId/blog',
             include: [ { model: Users, as: 'author' } ],
             order: [ ['updated_at', 'DESC'] ],
         } );
-        articles = articles.map( article => ( {
-            ...article.toJSON(),
-            views: viewsAll[ article.id ] || 0,
-        } ) );
-        res.json({ data: articles });
+        articles = articles.map( article => {
+            article.views = viewsAll[ article.id ] || 0;
+            return article;
+        } );
+        res.send({ data: articles });
     }
 ));
 

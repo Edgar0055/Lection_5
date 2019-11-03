@@ -26,11 +26,11 @@ router.get('/',
             include: [{ model: Users, as: 'author' }],
             order: [['id', 'DESC']]
         } );
-        articles = articles.map( article => ( {
-            ...article.toJSON(),
-            views: viewsAll[ article.id ] || 0
-        } ) );
-        res.json({ data: articles });    
+        articles = articles.map( article => {
+            article.views = viewsAll[ article.id ] || 0;
+            return article;
+        } );
+        res.send({ data: articles });    
     }
 ));
 
@@ -43,7 +43,8 @@ router.post('/',
         const { views } = await ArticlesViews.create({
             articleId: article.id, authorId, views: 0,
         });
-        res.json({ data: { ...article.toJSON(), views } });
+        article.views = views;
+        res.send({ data: article });
     }
 ));
 
@@ -62,7 +63,8 @@ router.get('/:blogId',
             new: true, upsert: true,
         });
         const { views } = articlesViews || { views: 1 };
-        res.json({ data: { ...article.toJSON(), views } });
+        article.views = views;
+        res.send({ data: article });
     }
 ));
 
@@ -75,7 +77,7 @@ router.put('/:blogId',
         const article = await Articles.findOne({
             where: { id: blogId, authorId, }
         });
-        await article.update({ ...body, });
+        await article.update( body );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
             articleId: article.id,
         }, {
@@ -84,7 +86,8 @@ router.put('/:blogId',
             new: true, upsert: true,
         });
         const { views } = articlesViews || { views: 0 };
-        res.json({ data: { ...article.toJSON(), views } });
+        article.views = views;
+        res.send({ data: article });
     }
 ));
 

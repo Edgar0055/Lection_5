@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
             field: 'published_at',
             type: DataTypes.DATE
         },
+        views: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),

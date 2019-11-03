@@ -25,6 +25,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING
         },
+        // picture: {
+ 
+        // },
+        viewsCount: DataTypes.VIRTUAL,
+        articlesCount: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
