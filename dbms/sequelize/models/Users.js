@@ -1,6 +1,12 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
     const Users = sequelize.define('Users', {
+        id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: DataTypes.INTEGER
+        },
         firstName: {
             allowNull: false,
             field: 'first_name',
@@ -19,6 +25,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING
         },
+        // picture: {
+ 
+        // },
+        viewsCount: DataTypes.VIRTUAL,
+        articlesCount: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
@@ -40,8 +51,18 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false
             },
             constraints: true,
-            onUpdate: 'cascade',
-            onDelete: 'cascade'
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        });
+        Users.hasMany(models.OAuth_Account, {
+            as: 'OAuth_Account',
+            foreignKey: {
+                name: 'userId',
+                allowNull: false
+            },
+            constraints: true,
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
         });
     };
     return Users;

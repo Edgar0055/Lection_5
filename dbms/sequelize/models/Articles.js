@@ -1,6 +1,12 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
     const Articles = sequelize.define('Articles', {
+        id: {
+            allowNull: false,
+            autoIncrement: true,
+            primaryKey: true,
+            type: DataTypes.INTEGER
+        },
         title: {
             allowNull: false,
             type: DataTypes.STRING,
@@ -32,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
             field: 'published_at',
             type: DataTypes.DATE
         },
+        views: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
@@ -53,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false
             },
             constraints: true,
-            onDelete: 'cascade'
+            onDelete: 'CASCADE'
         });
     };
     return Articles;
