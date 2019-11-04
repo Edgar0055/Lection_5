@@ -5,6 +5,9 @@ const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { bodySafe, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
+const multer = require('multer');
+const { GoogleStorage } = require('../lib/storage/google-storage');
+
 
 const router = $express.Router({
     caseSensitive: true,
@@ -77,6 +80,39 @@ router.put('/profile',
         }
         await user.update( body );
         res.send({ data: user });
+    }
+));
+
+router.put('/profile/picture',
+    isAuth(),
+    multer({
+        storage: new GoogleStorage({
+            key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+            bucket: process.env.GCS_BUCKET,
+            owner: 'edgar',
+            userId: ( req ) => +req.user.id,
+            folder: 'avatars',
+            size: { width: 180, height: 180, },
+        }),
+        limits: { fileSize: 1024 * 1024 * 5, }
+    }).single('picture'),
+    asyncHandler(async (req, res, next) => {
+        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
+        const path = req.file.path;
+        const picture = `${ prefix }${ path }`;
+        const userId = +req.user.id;
+        const user = await Users.findByPk( userId );
+        if ( !user ) {
+            await req.file.delete();
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( prefix, '' );
+                await req.file.deleteByFile( path );    
+            } catch ( error ) { }
+        }
+        await user.update({ picture, });
+        res.send({ data: { picture, } });
     }
 ));
 

@@ -25,9 +25,9 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING
         },
-        // picture: {
- 
-        // },
+        picture: {
+            type: DataTypes.STRING,
+        },
         viewsCount: DataTypes.VIRTUAL,
         articlesCount: DataTypes.VIRTUAL,
         createdAt: {
