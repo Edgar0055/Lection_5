@@ -5,12 +5,27 @@ const { Articles, Users } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
 const { bodySafe, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
+const multer = require('multer');
+const { GoogleStorage } = require('../lib/storage/google-storage');
+
 
 const router = $express.Router({
     caseSensitive: true,
     mergeParams: false,
     strict: true
 });
+const pictureStorage = new GoogleStorage({
+    key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    bucket: process.env.GCS_BUCKET,
+    owner: 'edgar',
+    userId: ( req ) => +req.user.id,
+    folder: 'articles',
+    size: { width: 1200, height: 630, },
+});
+const avatarUpload = multer({
+    storage: pictureStorage,
+    limits: { fileSize: 1024 * 1024 * 5, }
+}).single('picture');
 
 router.get('/',
     asyncHandler(async (req, res, next ) => {
@@ -36,9 +51,15 @@ router.get('/',
 
 router.post('/',
     isAuth(),
+    avatarUpload,
     asyncHandler(async (req, res, next) => {
+        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
+        if ( req.file ) {
+            const path = req.file.path;
+            body.picture = `${ prefix }${ path }`;    
+        }
         let article = await Articles.create({ ...body, authorId, });
         const { views } = await ArticlesViews.create({
             articleId: article.id, authorId, views: 0,
@@ -70,13 +91,27 @@ router.get('/:blogId',
 
 router.put('/:blogId',
     isAuth(),
+    avatarUpload,
     asyncHandler(async (req, res, next) => {
+        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
         const article = await Articles.findOne({
             where: { id: blogId, authorId, }
         });
+        if ( !article ) {
+            throw new Error('Article not found');
+        } else if ( article.picture && req.file ) {
+            try {
+                const path = article.picture.replace( prefix, '' );
+                await req.file.deleteByFile( path );    
+            } catch ( error ) { }
+        }
+        if ( req.file ) {
+            const path = req.file.path;
+            body.picture = `${ prefix }${ path }`;    
+        }
         await article.update( body );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
             articleId: article.id,

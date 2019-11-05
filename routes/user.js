@@ -14,6 +14,19 @@ const router = $express.Router({
     mergeParams: false,
     strict: true
 });
+const avatarStorage = new GoogleStorage({
+    key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    bucket: process.env.GCS_BUCKET,
+    owner: 'edgar',
+    userId: ( req ) => +req.user.id,
+    folder: 'avatars',
+    size: { width: 180, height: 180, },
+});
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 1024 * 1024 * 5, }
+}).single('picture');
+
 
 router.get('/users',
     asyncHandler(async (req, res, next) => {
@@ -85,21 +98,9 @@ router.put('/profile',
 
 router.put('/profile/picture',
     isAuth(),
-    multer({
-        storage: new GoogleStorage({
-            key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-            bucket: process.env.GCS_BUCKET,
-            owner: 'edgar',
-            userId: ( req ) => +req.user.id,
-            folder: 'avatars',
-            size: { width: 180, height: 180, },
-        }),
-        limits: { fileSize: 1024 * 1024 * 5, }
-    }).single('picture'),
+    avatarUpload,
     asyncHandler(async (req, res, next) => {
         const prefix = `https://storage.googleapis.com/zazmic-internship/`;
-        const path = req.file.path;
-        const picture = `${ prefix }${ path }`;
         const userId = +req.user.id;
         const user = await Users.findByPk( userId );
         if ( !user ) {
@@ -111,6 +112,8 @@ router.put('/profile/picture',
                 await req.file.deleteByFile( path );    
             } catch ( error ) { }
         }
+        const path = req.file.path;
+        const picture = `${ prefix }${ path }`;
         await user.update({ picture, });
         res.send({ data: { picture, } });
     }
