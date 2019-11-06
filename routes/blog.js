@@ -53,7 +53,7 @@ router.post('/',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
+        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
         if ( req.file ) {
@@ -93,7 +93,7 @@ router.put('/:blogId',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
+        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
@@ -129,13 +129,18 @@ router.put('/:blogId',
 router.delete('/:blogId',
     isAuth(),
     asyncHandler(async (req, res, next) => {
+        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
             where: { id: blogId, authorId }
         });
-        await article.destroy();
+        if ( article.picture ) {
+            const path = article.picture.replace( prefix, '' );
+            await pictureStorage.deleteByFile( path );    
+        }
         await ArticlesViews.deleteMany({ articleId: article.id, });
+        await article.destroy();
         res.end();
     }
 ));

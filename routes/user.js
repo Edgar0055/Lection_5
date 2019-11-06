@@ -100,7 +100,7 @@ router.put('/profile/picture',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = `https://storage.googleapis.com/zazmic-internship/`;
+        const prefix = process.env.GCS_URL_PREFIX;
         const userId = +req.user.id;
         const user = await Users.findByPk( userId );
         if ( !user ) {
@@ -122,10 +122,21 @@ router.put('/profile/picture',
 router.delete('/profile',
     isAuth(),
     asyncHandler(async (req, res, next) => {
+        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
-        await Users.destroy({
-            where: { id: authorId, }
-        });
+        const user = await Users.findByPk( authorId );
+        if ( !user ) {
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( prefix, '' );
+                await avatarStorage.deleteByFile( path );        
+            } catch ( error ) { }
+        }
+        try {
+            await avatarStorage.deleteByPrefixId( 'edgar', req );            
+        } catch (error) { }
+        await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
         res.end();
     }
