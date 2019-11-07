@@ -2,6 +2,10 @@
 require('dotenv').config();
 const $express = require('express');
 const app = $express();
+const http = require('http');
+const socketio = require('socket.io');
+const passportSocketIo = require('passport.socketio');
+const adapter = require('socket.io-redis');
 
 const $process = require('process');
 const $pug = require('pug');
@@ -50,6 +54,83 @@ app.use(function (err, req, res, next) {
     res.status(401).send('Something broke!');
 });
 
+const server = http.createServer(app);
+// const io = socketio(server);
+
+
+
+// io.adapter(adapter('redis://:pwd@localhost:6379'));
+// io.use(passportSocketIo.authorize({
+//     key: sessionConfig.name,
+//     secret: sessionConfig.secret,
+//     store: sessionConfig.store,
+//     fail: (data, message, error, accept) => {
+//         accept();
+//     },
+// }));
+// io.use((socket, next) => {
+//     // 
+//     next();
+// })
+
+// io.on('connection', function (socket) {
+//     console.log(`Socket ${socket.id} connected.`);
+//     io.of('/').adapter.clients((err, clients) => {
+//         console.log(`${clients.length} clients connected.`);
+//     });
+//     console.log(socket.request.user)
+//     const userId = socket.request.user.id;
+//     const userName = socket.request.user.name || 'Anonymous';
+//     const isLoggedIn = socket.request.user.logged_in || false;
+//     const ip = socket.request.connection.remoteAddress;
+
+//     socket.use((packet, next) => {
+//         const event = packet[0];
+//         console.log({ event });
+//         rateLimiter.consume(ip).then((consume) => {
+//             console.log({ consume })
+//             next()
+//         }).catch((consume) => {
+//             next(new Error('Rate limit error'));
+//         });
+//     })
+
+//     socket.on('join', (roomId) => {
+//         console.log('Joining to room id', roomId);
+//         // check permission ?
+//         socket.join(`room-${roomId}`, () => {
+//             const rooms = Object.keys(socket.rooms);
+//             const message = `${userName} has joined to room ${roomId}`;
+//             console.log(message);
+//             console.log(rooms);
+//             io.to(`room-${roomId}`).emit('message', { roomId, message })
+//         });
+//     });
+
+//     socket.on('leave', (roomId) => {
+//         console.log('Leaving room id', roomId);
+//         socket.leave(`room-${roomId}`, () => {
+//             const rooms = Object.keys(socket.rooms);
+//             const message = `${userName} has left room ${roomId}`;
+//             console.log(message);
+//             console.log(rooms);
+//             io.to(`room-${roomId}`).emit('message', { roomId, message })
+//         });
+//     });
+
+//     socket.on('message', (roomId, message) => {
+//         console.log('Message', roomId, message);
+//         io.to(`room-${roomId}`).emit('message', { roomId, message: `${userName} ${message}` });
+//     });
+
+//     socket.on('disconnect', (reason) => {
+//         console.log(`Socket ${socket.id} disconnected. Reason:`, reason);
+//         console.log(socket.request.user)
+//     })
+// });
+
+
+
 (async () => {
     mongoose.on('error', (error) => {
         $logger.actionLogger.error(`${error}`);
@@ -64,7 +145,7 @@ app.use(function (err, req, res, next) {
     });
 
     const port = $process.env.PORT || 2000;
-    app.listen(port, () => {
+    server.listen(port, () => {
         $logger.actionLogger.info(`Web-server started on port ${port}`);
     });
 })();
