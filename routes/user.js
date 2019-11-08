@@ -103,12 +103,12 @@ router.put('/profile/picture',
         const userId = +req.user.id;
         const user = await Users.findByPk( userId );
         if ( !user ) {
-            await req.file.delete();
+            await avatarStorage.deleteByFile( req.file.path ); 
             throw new Error('User not found');
         } else if ( user.picture ) {
             try {
                 const path = user.picture.replace( avatarStorage.prefix, '' );
-                await req.file.deleteByFile( path );    
+                await avatarStorage.deleteByFile( path );    
             } catch ( error ) { }
         }
         const picture = `${ avatarStorage.prefix }${ req.file.path }`;
@@ -131,7 +131,7 @@ router.delete('/profile',
             } catch ( error ) { }
         }
         try {
-            await avatarStorage.deleteByPrefixId( 'edgar', req );            
+            await avatarStorage.deleteByPrefixId( `edgar/${ +req.user.id }/` );            
         } catch (error) { }
         await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });

@@ -56,8 +56,7 @@ router.post('/',
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
         if ( req.file ) {
-            const path = req.file.path;
-            body.picture = `${ pictureStorage.prefix }${ path }`;    
+            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
         }
         let article = await Articles.create({ ...body, authorId, });
         const { views } = await ArticlesViews.create({
@@ -99,16 +98,16 @@ router.put('/:blogId',
             where: { id: blogId, authorId, }
         });
         if ( !article ) {
+            await pictureStorage.deleteByFile( req.file.path ); 
             throw new Error('Article not found');
         } else if ( article.picture && req.file ) {
             try {
                 const path = article.picture.replace( pictureStorage.prefix, '' );
-                await req.file.deleteByFile( path );    
+                await pictureStorage.deleteByFile( path );    
             } catch ( error ) { }
         }
         if ( req.file ) {
-            const path = req.file.path;
-            body.picture = `${ pictureStorage.prefix }${ path }`;    
+            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
         }
         await article.update( body );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
