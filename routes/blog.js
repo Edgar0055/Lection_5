@@ -16,9 +16,9 @@ const router = $express.Router({
 });
 const pictureStorage = new GoogleStorage({
     key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    url: process.env.GCS_URL_PREFIX,
     bucket: process.env.GCS_BUCKET,
     owner: 'edgar',
-    userId: ( req ) => +req.user.id,
     folder: 'articles',
     size: { width: 1200, height: 630, },
 });
@@ -53,12 +53,11 @@ router.post('/',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
         if ( req.file ) {
             const path = req.file.path;
-            body.picture = `${ prefix }${ path }`;    
+            body.picture = `${ pictureStorage.prefix }${ path }`;    
         }
         let article = await Articles.create({ ...body, authorId, });
         const { views } = await ArticlesViews.create({
@@ -93,7 +92,6 @@ router.put('/:blogId',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
@@ -104,13 +102,13 @@ router.put('/:blogId',
             throw new Error('Article not found');
         } else if ( article.picture && req.file ) {
             try {
-                const path = article.picture.replace( prefix, '' );
+                const path = article.picture.replace( pictureStorage.prefix, '' );
                 await req.file.deleteByFile( path );    
             } catch ( error ) { }
         }
         if ( req.file ) {
             const path = req.file.path;
-            body.picture = `${ prefix }${ path }`;    
+            body.picture = `${ pictureStorage.prefix }${ path }`;    
         }
         await article.update( body );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
@@ -129,14 +127,13 @@ router.put('/:blogId',
 router.delete('/:blogId',
     isAuth(),
     asyncHandler(async (req, res, next) => {
-        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
             where: { id: blogId, authorId }
         });
         if ( article.picture ) {
-            const path = article.picture.replace( prefix, '' );
+            const path = article.picture.replace( pictureStorage.prefix, '' );
             await pictureStorage.deleteByFile( path );    
         }
         await ArticlesViews.deleteMany({ articleId: article.id, });

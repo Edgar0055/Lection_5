@@ -16,9 +16,9 @@ const router = $express.Router({
 });
 const avatarStorage = new GoogleStorage({
     key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    url: process.env.GCS_URL_PREFIX,
     bucket: process.env.GCS_BUCKET,
     owner: 'edgar',
-    userId: ( req ) => +req.user.id,
     folder: 'avatars',
     size: { width: 180, height: 180, },
 });
@@ -100,7 +100,6 @@ router.put('/profile/picture',
     isAuth(),
     avatarUpload,
     asyncHandler(async (req, res, next) => {
-        const prefix = process.env.GCS_URL_PREFIX;
         const userId = +req.user.id;
         const user = await Users.findByPk( userId );
         if ( !user ) {
@@ -108,12 +107,11 @@ router.put('/profile/picture',
             throw new Error('User not found');
         } else if ( user.picture ) {
             try {
-                const path = user.picture.replace( prefix, '' );
+                const path = user.picture.replace( avatarStorage.prefix, '' );
                 await req.file.deleteByFile( path );    
             } catch ( error ) { }
         }
-        const path = req.file.path;
-        const picture = `${ prefix }${ path }`;
+        const picture = `${ avatarStorage.prefix }${ req.file.path }`;
         await user.update({ picture, });
         res.send({ data: { picture, } });
     }
@@ -122,14 +120,13 @@ router.put('/profile/picture',
 router.delete('/profile',
     isAuth(),
     asyncHandler(async (req, res, next) => {
-        const prefix = process.env.GCS_URL_PREFIX;
         const authorId = +req.user.id;
         const user = await Users.findByPk( authorId );
         if ( !user ) {
             throw new Error('User not found');
         } else if ( user.picture ) {
             try {
-                const path = user.picture.replace( prefix, '' );
+                const path = user.picture.replace( avatarStorage.prefix, '' );
                 await avatarStorage.deleteByFile( path );        
             } catch ( error ) { }
         }
