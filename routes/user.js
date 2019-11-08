@@ -103,12 +103,12 @@ router.put('/profile/picture',
         const userId = +req.user.id;
         const user = await Users.findByPk( userId );
         if ( !user ) {
-            await avatarStorage.deleteByFile( req.file.path ); 
+            await avatarStorage.deleteFile( req.file.path ); 
             throw new Error('User not found');
         } else if ( user.picture ) {
             try {
                 const path = user.picture.replace( avatarStorage.prefix, '' );
-                await avatarStorage.deleteByFile( path );    
+                await avatarStorage.deleteFile( path );    
             } catch ( error ) { }
         }
         const picture = `${ avatarStorage.prefix }${ req.file.path }`;
@@ -127,11 +127,11 @@ router.delete('/profile',
         } else if ( user.picture ) {
             try {
                 const path = user.picture.replace( avatarStorage.prefix, '' );
-                await avatarStorage.deleteByFile( path );        
+                await avatarStorage.deleteFile( path );        
             } catch ( error ) { }
         }
         try {
-            await avatarStorage.deleteByPrefixId( `edgar/${ +req.user.id }/` );            
+            await avatarStorage.deleteUserFiles( +req.user.id );
         } catch (error) { }
         await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });

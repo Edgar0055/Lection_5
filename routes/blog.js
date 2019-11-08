@@ -98,12 +98,12 @@ router.put('/:blogId',
             where: { id: blogId, authorId, }
         });
         if ( !article ) {
-            await pictureStorage.deleteByFile( req.file.path ); 
+            await pictureStorage.deleteFile( req.file.path ); 
             throw new Error('Article not found');
         } else if ( article.picture && req.file ) {
             try {
                 const path = article.picture.replace( pictureStorage.prefix, '' );
-                await pictureStorage.deleteByFile( path );    
+                await pictureStorage.deleteFile( path );    
             } catch ( error ) { }
         }
         if ( req.file ) {
@@ -133,7 +133,7 @@ router.delete('/:blogId',
         });
         if ( article.picture ) {
             const path = article.picture.replace( pictureStorage.prefix, '' );
-            await pictureStorage.deleteByFile( path );    
+            await pictureStorage.deleteFile( path );    
         }
         await ArticlesViews.deleteMany({ articleId: article.id, });
         await article.destroy();
