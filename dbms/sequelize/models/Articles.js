@@ -65,6 +65,16 @@ module.exports = (sequelize, DataTypes) => {
             constraints: true,
             onDelete: 'CASCADE'
         });
+        Articles.hasMany(models.Comments, {
+            as: 'Comments',
+            foreignKey: {
+                name: 'articleId',
+                allowNull: false
+            },
+            constraints: true,
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        });
     };
     return Articles;
 };

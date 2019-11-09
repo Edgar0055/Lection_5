@@ -7,16 +7,16 @@ module.exports = {
                 allowNull: false,
                 autoIncrement: true,
                 primaryKey: true,
-                type: Sequelize.INTEGER
+                type: Sequelize.INTEGER,
             },
             title: {
                 allowNull: false,
-                type: Sequelize.STRING
+                type: Sequelize.STRING,
             },
             content: {
                 allowNull: false,
                 defaultValue: '',
-                type: Sequelize.TEXT
+                type: Sequelize.TEXT,
             },
             authorId: {
                 allowNull: false,
@@ -27,24 +27,24 @@ module.exports = {
                 },
                 type: Sequelize.INTEGER,
                 onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
+                onDelete: 'CASCADE',
             },
             publishedAt: {
                 allowNull: true,
                 field: 'published_at',
-                type: Sequelize.DATE
+                type: Sequelize.DATE,
             },
             createdAt: {
                 allowNull: false,
                 defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
                 field: 'created_at',
-                type: Sequelize.DATE
+                type: Sequelize.DATE,
             },
             updatedAt: {
                 allowNull: false,
                 defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
                 field: 'updated_at',
-                type: Sequelize.DATE
+                type: Sequelize.DATE,
             }
         });
         return result;
