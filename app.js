@@ -18,7 +18,7 @@ $passport.serializeUser((user, done) => {
     done(null, user);
 });
 $passport.deserializeUser((user, done) => {
-    done(null, user);     
+    done(null, user);
 });
 
 app.use($session({
@@ -46,7 +46,7 @@ app.use('/api/v1', requestsLimiter, require('./routes/user'));
 app.use(require('./routes/fe'));
 
 app.use(function (err, req, res, next) {
-    $logger.actionLogger.error(`${err}`);
+    $logger.actionLogger.error(`${err.stack}`);
     res.status(401).send('Something broke!');
 });
 
