@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users } = require('../dbms/sequelize/models');
+const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe, validate } = require('./helper');
+const { bodySafe, paginationArticles, paginationComments, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
@@ -27,9 +27,13 @@ const avatarUpload = multer({
     limits: { fileSize: 1024 * 1024 * 5, }
 }).single('picture');
 
+
 router.get('/',
     asyncHandler(async (req, res, next ) => {
-        let viewsAll = await ArticlesViews.find({}, {
+        const after = paginationArticles( req.query.after );
+        let viewsAll = await ArticlesViews.find({
+            ...after ? { id: { $gt: after.id, } } : {},
+        }, {
             views: 1,
             articleId: 1,
         } );
@@ -38,8 +42,13 @@ router.get('/',
         } ) );
         viewsAll = Object.assign({}, ...viewsAll);
         let articles = await Articles.findAll({
+            where: {
+                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
+                ...after ? { publishedAt: { [ Sequelize.Op.lte ]: after.at } } : {},
+            },
             include: [{ model: Users, as: 'author' }],
-            order: [['id', 'DESC']]
+            order: [['id', 'DESC']],
+            limit: 5,
         } );
         articles = articles.map( article => {
             article.views = viewsAll[ article.id ] || 0;
@@ -141,4 +150,58 @@ router.delete('/:blogId',
     }
 ));
 
+router.get('/:articleId/comments',
+    asyncHandler(async ( req, res ) => {
+        const articleId = +req.params.articleId;
+        const after = paginationComments( req.query.after );
+        let comments = await Comments.findAll({
+            where: {
+                articleId,
+                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
+            },
+            include: [
+                { model: Users.scope('comment'), as: 'author', },
+                // { model: Articles, as: 'article', },
+            ],
+            order: [['id', 'DESC']],
+            limit: 5,
+        } );
+        res.send({ data: comments });
+    })
+);
+
+router.post('/:articleId/comments',
+    isAuth(),
+    asyncHandler(async (req, res,) => {
+        const authorId = +req.user.id;
+        const articleId = +req.params.articleId;
+        const body = bodySafe( req.body, 'content' );
+        let comment = await Comments.create({
+            ...body, authorId, articleId,
+        });
+        comment = await Comments.findByPk(comment.id, {
+            include: [
+                { model: Users.scope('comment'), as: 'author', },
+            ],
+        });
+        res.send({ data: comment });
+    })
+);
+
+router.delete('/:articleId/comments/:commentId',
+    isAuth(),
+    asyncHandler(async (req, res) => {
+        const authorId = +req.user.id;
+        const articleId = +req.params.articleId;
+        const commentId = +req.params.commentId;
+        const comment = await Comments.findOne({
+            where: {id: commentId, articleId, authorId, },
+        });
+        if ( !comment ) {
+            throw new Error('Comment not found');
+        }
+        await comment.destroy();
+        res.end();
+    })
+);
 module.exports = router;

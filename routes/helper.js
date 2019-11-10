@@ -21,3 +21,18 @@ module.exports.bodySafe = ( body, keys ) => {
             .filter( ( [ key ] ) => keys.includes( key ) )
     );
 };
+
+module.exports.paginationArticles = ( after ) => {
+    const match = after ? /^(.*)[\_]([\d]+)$/.exec( after ) : false;
+    return match ? {
+        id: +match[2],
+        at: new Date(match[1]),
+    } : false;
+};
+
+module.exports.paginationComments = ( after ) => {
+    const match = after ? /^([\d]+)$/.exec( after ) : false;
+    return match ? {
+        id: +match[1],
+    } : false;
+};

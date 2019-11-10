@@ -24,9 +24,10 @@ $passport.use(new $LocalStrategy({
     passReqToCallback: true,
 }, async (req, email, password, next) => {
     try {
-        const user = await Users.findOne({ where: { email, } });
+        let user = await Users.scope('auth').findOne({ where: { email, } });
         if ( await $bcrypt.compare(password, user.password) ) {
-            next( null, user.toJSON() );
+            user = user.toJSON();
+            next( null, user );
         } else {
             throw new Error('Auth error');
         }   
@@ -65,11 +66,12 @@ router.post('/registration',
             throw new Error('Busy email. Try else email.');
         }
         const salt = await $bcrypt.genSalt(10);
-        const user = await Users.create({
+        let user = await Users.create({
             ...body,
             password: await $bcrypt.hash( body.password, salt ),
         });
-        req.logIn( user.toJSON(), ( error ) => {
+        // user = user.toJSON();
+        req.logIn( user, ( error ) => {
             if ( error ) {
                 next( error );
             } else {

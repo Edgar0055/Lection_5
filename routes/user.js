@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
+const { Articles, Users, Sequelize, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, validate } = require('./helper');
+const { bodySafe, paginationArticles, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
@@ -141,9 +141,11 @@ router.delete('/profile',
 
 router.get('/users/:userId/blog',
     asyncHandler(async (req, res, next) => {
+        const after = paginationArticles( req.query.after );
         const authorId = +req.params.userId;
         let viewsAll = await ArticlesViews.find({
             authorId,
+            ...after ? { id: { $lt: after.id, } } : {},
         }, {
             views: 1,
             articleId: 1,
@@ -153,9 +155,14 @@ router.get('/users/:userId/blog',
         } ) );
         viewsAll = Object.assign({}, ...viewsAll);
         let articles = await Articles.findAll({
-            where: { authorId, },
+            where: {
+                authorId,
+                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
+                ...after ? { publishedAt: { [ Sequelize.Op.lte ]: after.at } } : {},
+            },
             include: [ { model: Users, as: 'author' } ],
             order: [ ['updated_at', 'DESC'] ],
+            limit: 5,
         } );
         articles = articles.map( article => {
             article.views = viewsAll[ article.id ] || 0;

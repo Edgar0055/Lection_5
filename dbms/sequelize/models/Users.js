@@ -42,7 +42,19 @@ module.exports = (sequelize, DataTypes) => {
             field: 'updated_at',
             type: DataTypes.DATE
         }
-    }, {});
+    }, {
+        defaultScope: {
+            attributes: {
+                exclude: [ 'password', ],
+            },
+        },
+        scopes: {
+            auth: { attributes: { include: [ 'password', ], } },
+            comment: {
+                attributes: [ 'id', 'firstName', 'lastName', 'picture', ],
+            },
+        }
+    });
     Users.associate = (models) => {
         Users.hasMany(models.Articles, {
             as: 'Articles',
@@ -52,7 +64,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             constraints: true,
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
         });
         Users.hasMany(models.OAuth_Account, {
             as: 'OAuth_Account',
@@ -62,7 +74,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             constraints: true,
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
         });
         Users.hasMany(models.Comments, {
             as: 'Comments',
@@ -72,7 +84,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             constraints: true,
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
         });
     };
     return Users;
