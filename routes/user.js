@@ -3,7 +3,7 @@ const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const { Articles, Users, Sequelize, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, paginationArticles, validate, viewsMixing, } = require('./helper');
+const { paginationArticles, validateUser, viewsMixing, } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
@@ -83,10 +83,11 @@ router.get('/users/:userId',
 ));
 
 router.put('/profile',
+    validateUser,
     isAuth(),
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const body = bodySafe( req.body, 'firstName lastName' );
+        const body = req.body;
         const user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');

@@ -3,7 +3,7 @@ const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe, paginationArticles, paginationComments, validate, viewsMixing } = require('./helper');
+const { paginationArticles, paginationComments, validateArticle, viewsMixing, validateComment } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
@@ -48,9 +48,10 @@ router.get('/',
 router.post('/',
     isAuth(),
     avatarUpload,
+    validateArticle(pictureStorage),
     asyncHandler(async (req, res, next) => {
         const authorId = +req.user.id;
-        const body = bodySafe( req.body, 'title content publishedAt' );
+        const body = req.body;
         if ( req.file ) {
             body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
         }
@@ -86,10 +87,11 @@ router.get('/:blogId',
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
+    validateArticle(pictureStorage),
     asyncHandler(async (req, res, next) => {
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
-        const body = bodySafe( req.body, 'title content publishedAt' );
+        const body = req.body;
         const article = await Articles.findOne({
             where: { id: blogId, authorId, }
         });
@@ -158,11 +160,12 @@ router.get('/:articleId/comments',
 );
 
 router.post('/:articleId/comments',
+    validateComment,
     isAuth(),
     asyncHandler(async (req, res,) => {
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
-        const body = bodySafe( req.body, 'content' );
+        const body = req.body;
         let comment = await Comments.create({
             ...body, authorId, articleId,
         });
