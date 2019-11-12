@@ -5,12 +5,28 @@ const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { bodySafe, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
+const multer = require('multer');
+const { GoogleStorage } = require('../lib/storage/google-storage');
+
 
 const router = $express.Router({
     caseSensitive: true,
     mergeParams: false,
     strict: true
 });
+const avatarStorage = new GoogleStorage({
+    key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    url: process.env.GCS_URL_PREFIX,
+    bucket: process.env.GCS_BUCKET,
+    owner: 'edgar',
+    folder: 'avatars',
+    size: { width: 180, height: 180, },
+});
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 1024 * 1024 * 5, }
+}).single('picture');
+
 
 router.get('/users',
     asyncHandler(async (req, res, next) => {
@@ -80,13 +96,44 @@ router.put('/profile',
     }
 ));
 
+router.put('/profile/picture',
+    isAuth(),
+    avatarUpload,
+    asyncHandler(async (req, res, next) => {
+        const userId = +req.user.id;
+        const user = await Users.findByPk( userId );
+        if ( !user ) {
+            await avatarStorage.deleteFile( req.file.path ); 
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( avatarStorage.prefix, '' );
+                await avatarStorage.deleteFile( path );    
+            } catch ( error ) { }
+        }
+        const picture = `${ avatarStorage.prefix }${ req.file.path }`;
+        await user.update({ picture, });
+        res.send({ data: { picture, } });
+    }
+));
+
 router.delete('/profile',
     isAuth(),
     asyncHandler(async (req, res, next) => {
         const authorId = +req.user.id;
-        await Users.destroy({
-            where: { id: authorId, }
-        });
+        const user = await Users.findByPk( authorId );
+        if ( !user ) {
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( avatarStorage.prefix, '' );
+                await avatarStorage.deleteFile( path );        
+            } catch ( error ) { }
+        }
+        try {
+            await avatarStorage.deleteUserFiles( +req.user.id );
+        } catch (error) { }
+        await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
         res.end();
     }

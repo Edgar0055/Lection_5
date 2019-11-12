@@ -38,6 +38,9 @@ module.exports = (sequelize, DataTypes) => {
             field: 'published_at',
             type: DataTypes.DATE
         },
+        picture: {
+            type: DataTypes.STRING,
+        },
         views: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
