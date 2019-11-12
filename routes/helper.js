@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable no-undef */
+const { ArticlesViews } = require('../dbms/mongodb/models');
 
 module.exports.validate = ( type ) = (_) => {
     switch (type) {
@@ -23,16 +24,38 @@ module.exports.bodySafe = ( body, keys ) => {
 };
 
 module.exports.paginationArticles = ( after ) => {
-    const match = after ? /^(.*)[\_]([\d]+)$/.exec( after ) : false;
+    const match = after ? after.split('_') : false;
     return match ? {
-        id: +match[2],
-        at: new Date(match[1]),
+        id: +match[1],
+        at: new Date(match[0]),
     } : false;
 };
 
 module.exports.paginationComments = ( after ) => {
-    const match = after ? /^([\d]+)$/.exec( after ) : false;
+    const match = after ? Number( after ) : false;
     return match ? {
-        id: +match[1],
+        id: +match,
     } : false;
 };
+
+module.exports.viewsMixing = async ( articles ) => {
+    if (articles.length) {
+        const articlesViews = await ArticlesViews.find({
+            articleId: { $in: articles.map(article => article.id) },
+        }, {
+            views: 1,
+            articleId: 1,
+        } );
+
+        const viewsByArticleId = articlesViews.reduce(
+            (data, article) => Object.assign(data, {
+                [article.articleId]: article.views,
+            }),
+            {},
+        );
+
+        for (const article of articles) {
+            article.views = viewsByArticleId[ article.id ] || 0;
+        }
+    }
+}

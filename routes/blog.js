@@ -3,7 +3,7 @@ const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe, paginationArticles, paginationComments, validate } = require('./helper');
+const { bodySafe, paginationArticles, paginationComments, validate, viewsMixing } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
@@ -31,16 +31,6 @@ const avatarUpload = multer({
 router.get('/',
     asyncHandler(async (req, res, next ) => {
         const after = paginationArticles( req.query.after );
-        let viewsAll = await ArticlesViews.find({
-            ...after ? { id: { $gt: after.id, } } : {},
-        }, {
-            views: 1,
-            articleId: 1,
-        } );
-        viewsAll = viewsAll.map( article => ( {
-            [ article.articleId ]: article.views,
-        } ) );
-        viewsAll = Object.assign({}, ...viewsAll);
         let articles = await Articles.findAll({
             where: {
                 ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
@@ -50,10 +40,7 @@ router.get('/',
             order: [['id', 'DESC']],
             limit: 5,
         } );
-        articles = articles.map( article => {
-            article.views = viewsAll[ article.id ] || 0;
-            return article;
-        } );
+        await viewsMixing(articles);
         res.send({ data: articles });    
     }
 ));
