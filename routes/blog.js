@@ -1,14 +1,15 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
+const { check, validationResult, } = require( 'express-validator' );
+const multer = require('multer');
 const { Articles, Users, Comments, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { validateArticle, validateComment } = require('./helper');
 const { isAuth } = require('../lib/passport');
-const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
 const ArticlesService = require( '../services/articles' );
 const CommentsService = require( '../services/comments' );
+const { validateArticle, validateComment } = require('./helper');
 
 
 const router = $express.Router({
@@ -42,21 +43,20 @@ router.get('/',
 router.post('/',
     isAuth(),
     avatarUpload,
-    validateArticle(pictureStorage),
+    ArticlesService.validationCheckOnCreate(),
     asyncHandler( async ( req, res ) => {
+        await ArticlesService.validationResultOnCreate( req, pictureStorage );
         const authorId = +req.user.id;
-        const body = req.body;
-        if ( req.file ) {
-            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
-        }
-        let article = await Articles.create({ ...body, authorId, });
-        const { views } = await ArticlesViews.create({
+        const { title, content, publishedAt, } = req.body;
+        const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
+        const article = await Articles.create( { title, content, publishedAt, authorId, picture, } );
+        const { views } = await ArticlesViews.create( {
             articleId: article.id, authorId, views: 0,
-        });
+        } );
         article.views = views;
-        res.send({ data: article });
+        res.send( { data: article } );
     }
-));
+) );
 
 router.get('/:blogId',
     asyncHandler( async ( req, res ) => {
@@ -81,8 +81,9 @@ router.get('/:blogId',
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
-    validateArticle(pictureStorage),
+    ArticlesService.validationCheckOnEdit(),
     asyncHandler( async ( req, res ) => {
+        await ArticlesService.validationResultOnEdit( req, pictureStorage );
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = req.body;
@@ -90,7 +91,9 @@ router.put('/:blogId',
             where: { id: blogId, authorId, }
         });
         if ( !article ) {
-            await pictureStorage.deleteFile( req.file.path ); 
+            if ( req.file ) {
+                await pictureStorage.deleteFile( req.file.path );
+            }
             throw new Error('Article not found');
         } else if ( article.picture && req.file ) {
             try {
@@ -146,7 +149,9 @@ router.get('/:articleId/comments',
 router.post('/:articleId/comments',
     validateComment,
     isAuth(),
+    // TODO: validate check
     asyncHandler(async (req, res,) => {
+        // TODO: validate result
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
         const body = req.body;

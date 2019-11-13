@@ -1,3 +1,4 @@
+const { check, validationResult, } = require( 'express-validator' );
 const { Articles, Users, Sequelize, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
 
@@ -47,6 +48,33 @@ class ArticlesService {
 
         return articles;
     }
+
+    validationCheckOnCreate() {
+        return [
+            check( 'title' ).isLength( { min: 3, } ),
+            check( 'content' ).isLength( { min: 3, max: 1000, } ),
+            check( 'publishedAt' ).exists( ),    
+        ];
+    }
+
+    validationCheckOnEdit() {
+        return this.validationCheckOnCreate();
+    }
+
+    async validationResultOnCreate( req, storage ) {
+        const errors = validationResult( req );
+        if ( !errors.isEmpty() ) {
+            if ( req.file ) {
+                await storage.deleteFile( req.file.path );
+            }
+            throw new Error( `my validation` );
+        }
+    }
+
+    async validationResultOnEdit() {
+        return await this.validationResultOnCreate();
+    }
+
 }
 
 module.exports = new ArticlesService();

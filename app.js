@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 require('dotenv').config();
 const $express = require('express');
+const { validationResult, } = require('express-validator');
 const app = $express();
 
 const $process = require('process');
@@ -45,26 +46,32 @@ app.use('/api/v1/blog', requestsLimiter, require('./routes/blog'));
 app.use('/api/v1', requestsLimiter, require('./routes/user'));
 app.use(require('./routes/fe'));
 
-app.use(function (err, req, res, next) {
-    $logger.actionLogger.error(`${err.stack}`);
-    res.status(401).send('Something broke!');
-});
+app.use( function ( error, req, res, next ) {
+    const errors = validationResult( req );
+    if ( !errors.isEmpty() ) {
+        $logger.actionLogger.error(`${ errors.array() }`);
+        res.status( 422 ).send( { errors: errors.array(), } );
+    } else {
+        $logger.actionLogger.error(`${ error.stack }`);
+        res.status( 401 ).send( 'Something broke!' );    
+    }
+} );
 
-(async () => {
-    mongoose.on('error', (error) => {
+( async () => {
+    mongoose.on( 'error', (error) => {
         $logger.actionLogger.error(`${error}`);
-    });
+    } );
     await mongodbConnect();
     $logger.actionLogger.info('MongoDB connection success!');
 
-    await sequelizeConnect((error) => {
+    await sequelizeConnect( ( error ) => {
         $logger.actionLogger.error(`${error}`);
     }, () => {
         $logger.actionLogger.info('MySQL DB connection success!');
-    });
+    } );
 
     const port = $process.env.PORT || 2000;
-    app.listen(port, () => {
+    app.listen( port, () => {
         $logger.actionLogger.info(`Web-server started on port ${port}`);
-    });
-})();
+    } );
+} )();
