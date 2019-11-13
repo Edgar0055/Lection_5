@@ -15,7 +15,7 @@ class ArticlesService {
             const [ at, id ] = after.split('_', 2);
             Object.assign( where, {
                 id: { [ Sequelize.Op.lt ]: +id },
-                publishedAt: { [ Sequelize.Op.lte ]: new Date( at ) },    
+                publishedAt: { [ Sequelize.Op.lte ]: at },    
             } );
         }
         if ( !limit ) {
@@ -25,7 +25,7 @@ class ArticlesService {
         const articles = await Articles.findAll({
             where,
             include: [ { model: Users, as: 'author' } ],
-            order: [ ['updated_at', 'DESC'] ],
+            order: [ ['published_at', 'DESC'] ],
             limit,
         } );
 
