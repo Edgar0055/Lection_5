@@ -147,11 +147,10 @@ router.get('/:articleId/comments',
 );
 
 router.post('/:articleId/comments',
-    validateComment,
     isAuth(),
-    // TODO: validate check
+    CommentsService.validationCheckOnComments(),
     asyncHandler(async (req, res,) => {
-        // TODO: validate result
+        await CommentsService.validationResultOnComments( req );
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
         const body = req.body;

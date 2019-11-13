@@ -1,3 +1,4 @@
+const { check, validationResult, } = require( 'express-validator' );
 const { Comments, Users, Sequelize, } = require('../dbms/sequelize/models');
 
 
@@ -29,6 +30,19 @@ class CommentsService {
         } );
 
         return comments;
+    }
+
+    validationCheckOnComments() {
+        return [
+            check( 'content' ).isLength( { min: 3, max: 200, } ),    
+        ];
+    }
+
+    async validationResultOnComments( req ) {
+        const errors = validationResult( req );
+        if ( !errors.isEmpty() ) {
+            throw new Error( `my validation` );
+        }
     }
 }
 
