@@ -3,10 +3,12 @@ const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe, paginationArticles, paginationComments, validate, viewsMixing } = require('./helper');
+const { bodySafe } = require( './helper' );
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const ArticlesService = require( '../services/articles' );
+const CommentsService = require( '../services/comments' );
 
 
 const router = $express.Router({
@@ -29,18 +31,10 @@ const avatarUpload = multer({
 
 
 router.get('/',
-    asyncHandler(async (req, res, next ) => {
-        const after = paginationArticles( req.query.after );
-        let articles = await Articles.findAll({
-            where: {
-                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
-                ...after ? { publishedAt: { [ Sequelize.Op.lte ]: after.at } } : {},
-            },
-            include: [{ model: Users, as: 'author' }],
-            order: [['id', 'DESC']],
-            limit: 5,
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
         } );
-        await viewsMixing(articles);
         res.send({ data: articles });    
     }
 ));
@@ -48,7 +42,7 @@ router.get('/',
 router.post('/',
     isAuth(),
     avatarUpload,
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
         if ( req.file ) {
@@ -64,7 +58,7 @@ router.post('/',
 ));
 
 router.get('/:blogId',
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
             include: [ { model: Users, as: 'author' } ],
@@ -86,7 +80,7 @@ router.get('/:blogId',
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
@@ -121,7 +115,7 @@ router.put('/:blogId',
 
 router.delete('/:blogId',
     isAuth(),
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
@@ -139,19 +133,9 @@ router.delete('/:blogId',
 
 router.get('/:articleId/comments',
     asyncHandler(async ( req, res ) => {
-        const articleId = +req.params.articleId;
-        const after = paginationComments( req.query.after );
-        let comments = await Comments.findAll({
-            where: {
-                articleId,
-                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
-            },
-            include: [
-                { model: Users.scope('comment'), as: 'author', },
-                // { model: Articles, as: 'article', },
-            ],
-            order: [['id', 'DESC']],
-            limit: 5,
+        const comments = await CommentsService.getComments( {
+            after: req.query.after,
+            articleId: +req.params.articleId,
         } );
         res.send({ data: comments });
     })

@@ -1,12 +1,13 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users, Sequelize, sequelize } = require('../dbms/sequelize/models');
+const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, paginationArticles, validate, viewsMixing, } = require('./helper');
+const { validateUser, } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const ArticlesService = require( '../services/articles' );
 
 
 const router = $express.Router({
@@ -140,20 +141,11 @@ router.delete('/profile',
 ));
 
 router.get('/users/:userId/blog',
-    asyncHandler(async (req, res, next) => {
-        const after = paginationArticles( req.query.after );
-        const authorId = +req.params.userId;
-        const articles = await Articles.findAll({
-            where: {
-                authorId,
-                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
-                ...after ? { publishedAt: { [ Sequelize.Op.lte ]: after.at } } : {},
-            },
-            include: [ { model: Users, as: 'author' } ],
-            order: [ ['updated_at', 'DESC'] ],
-            limit: 5,
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
+            authorId: +req.params.userId,
         } );
-        await viewsMixing(articles);
         res.send({ data: articles });
     }
 ));

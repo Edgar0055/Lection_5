@@ -23,39 +23,3 @@ module.exports.bodySafe = ( body, keys ) => {
     );
 };
 
-module.exports.paginationArticles = ( after ) => {
-    const match = after ? after.split('_') : false;
-    return match ? {
-        id: +match[1],
-        at: new Date(match[0]),
-    } : false;
-};
-
-module.exports.paginationComments = ( after ) => {
-    const match = after ? Number( after ) : false;
-    return match ? {
-        id: +match,
-    } : false;
-};
-
-module.exports.viewsMixing = async ( articles ) => {
-    if (articles.length) {
-        const articlesViews = await ArticlesViews.find({
-            articleId: { $in: articles.map(article => article.id) },
-        }, {
-            views: 1,
-            articleId: 1,
-        } );
-
-        const viewsByArticleId = articlesViews.reduce(
-            (data, article) => Object.assign(data, {
-                [article.articleId]: article.views,
-            }),
-            {},
-        );
-
-        for (const article of articles) {
-            article.views = viewsByArticleId[ article.id ] || 0;
-        }
-    }
-}

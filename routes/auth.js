@@ -70,7 +70,7 @@ router.post('/registration',
             ...body,
             password: await $bcrypt.hash( body.password, salt ),
         });
-        // user = user.toJSON();
+        user = user.toJSON();
         req.logIn( user, ( error ) => {
             if ( error ) {
                 next( error );
