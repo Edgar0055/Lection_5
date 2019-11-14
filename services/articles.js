@@ -25,7 +25,7 @@ class ArticlesService {
         const articles = await Articles.findAll({
             where,
             include: [ { model: Users, as: 'author' } ],
-            order: [ ['published_at', 'DESC'] ],
+            order: [ ['published_at', 'DESC'], ['id', 'DESC'] ],
             limit,
         } );
 
