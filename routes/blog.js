@@ -40,24 +40,6 @@ router.get('/',
     }
 ));
 
-router.post('/',
-    isAuth(),
-    avatarUpload,
-    ArticlesService.validationCheckOnCreate(),
-    asyncHandler( async ( req, res ) => {
-        await ArticlesService.validationResultOnCreate( req, pictureStorage );
-        const authorId = +req.user.id;
-        const { title, content, publishedAt, } = req.body;
-        const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
-        const article = await Articles.create( { title, content, publishedAt, authorId, picture, } );
-        const { views } = await ArticlesViews.create( {
-            articleId: article.id, authorId, views: 0,
-        } );
-        article.views = views;
-        res.send( { data: article } );
-    }
-) );
-
 router.get('/:blogId',
     asyncHandler( async ( req, res ) => {
         const blogId = +req.params.blogId;
@@ -78,6 +60,24 @@ router.get('/:blogId',
     }
 ));
 
+router.post('/',
+    isAuth(),
+    avatarUpload,
+    ArticlesService.validationCheckOnCreate(),
+    asyncHandler( async ( req, res ) => {
+        await ArticlesService.validationResultOnCreate( req, pictureStorage );
+        const authorId = +req.user.id;
+        const { title, content, publishedAt, } = req.body;
+        const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
+        const article = await Articles.create( { title, content, publishedAt, authorId, picture, } );
+        const { views } = await ArticlesViews.create( {
+            articleId: article.id, authorId, views: 0,
+        } );
+        article.views = views;
+        res.send( { data: article } );
+    }
+) );
+
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
@@ -85,10 +85,11 @@ router.put('/:blogId',
     asyncHandler( async ( req, res ) => {
         await ArticlesService.validationResultOnEdit( req, pictureStorage );
         const authorId = +req.user.id;
-        const blogId = +req.params.blogId;
-        const body = req.body;
+        const articleId = +req.params.blogId;
+        const { title, content, publishedAt, } = req.body;
+        const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
         const article = await Articles.findOne({
-            where: { id: blogId, authorId, }
+            where: { id: articleId, authorId, }
         });
         if ( !article ) {
             if ( req.file ) {
@@ -101,10 +102,7 @@ router.put('/:blogId',
                 await pictureStorage.deleteFile( path );    
             } catch ( error ) { }
         }
-        if ( req.file ) {
-            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
-        }
-        await article.update( body );
+        await article.update( { title, content, publishedAt, picture, } );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
             articleId: article.id,
         }, {
@@ -122,9 +120,9 @@ router.delete('/:blogId',
     isAuth(),
     asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
-        const blogId = +req.params.blogId;
+        const articleId = +req.params.blogId;
         let article = await Articles.findOne({
-            where: { id: blogId, authorId }
+            where: { id: articleId, authorId }
         });
         if ( article.picture ) {
             const path = article.picture.replace( pictureStorage.prefix, '' );
@@ -135,6 +133,7 @@ router.delete('/:blogId',
         res.end();
     }
 ));
+
 
 router.get('/:articleId/comments',
     asyncHandler(async ( req, res ) => {
@@ -153,9 +152,9 @@ router.post('/:articleId/comments',
         await CommentsService.validationResultOnComments( req );
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
-        const body = req.body;
+        const { content, } = req.body;
         let comment = await Comments.create({
-            ...body, authorId, articleId,
+            content, authorId, articleId,
         });
         comment = await Comments.findByPk(comment.id, {
             include: [
@@ -182,4 +181,5 @@ router.delete('/:articleId/comments/:commentId',
         res.end();
     })
 );
+
 module.exports = router;

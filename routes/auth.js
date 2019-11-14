@@ -9,6 +9,8 @@ const { validateAuth } = require('./helper');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
 const { providerLogin } = require('../lib/passport/provider');
+const UsersService = require( '../services/users' );
+
 
 const router = $express.Router({
     caseSensitive: true,
