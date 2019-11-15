@@ -34,7 +34,9 @@ class CommentsService {
 
     validationCheckOnComments() {
         return [
-            check( 'content' ).isLength( { max: 200, } )  
+            check( 'content' )
+                .isLength( { max: 200, } )
+                .withMessage("Content too long"),  
         ];
     }
 

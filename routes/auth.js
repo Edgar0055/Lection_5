@@ -8,7 +8,7 @@ const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
 const { providerLogin } = require('../lib/passport/provider');
-const AuthService = require( '../services/auth' );
+const UsersService = require( '../services/users' );
 
 
 const router = $express.Router({
@@ -58,9 +58,9 @@ $passport.use(new $FacebookStrategy({
 ));
 
 router.post('/registration',
-    AuthService.validationCheckOnRegistation(),
+    UsersService.validationCheckOnRegistation(),
     asyncHandler(async (req, res, next) => {
-        await AuthService.validationResultOnRegistration( req );
+        await UsersService.validationResultOnRegistration( req );
         const body = req.body;
         const candidate = await Users.findOne( {
             where: { email: body.email, }
@@ -85,11 +85,11 @@ router.post('/registration',
 ));
 
 router.post('/login',
-    AuthService.validationCheckOnLogin(),
+    UsersService.validationCheckOnLogin(),
     loginLimiter,
     $passport.authenticate('local', { }),
     asyncHandler(async (req, res, next) => {
-        await AuthService.validationResultOnLogin( req );
+        await UsersService.validationResultOnLogin( req );
         const { password, ...user } = req.user;
         res.json({ data: user, });
     })

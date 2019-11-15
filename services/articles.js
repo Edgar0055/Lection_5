@@ -55,8 +55,11 @@ class ArticlesService {
                 .isLength( { min: 2, } )
                 .withMessage("Title must be at least 2 characters"),
             check( 'content' )
-                .isLength( { min: 1, max: 1000, } )
+                .isLength( { min: 1, } )
                 .withMessage("Content cannot be empty"),
+            check( 'content' )
+                .isLength( { max: 1000, } )
+                .withMessage("Content is too long"),
             check( 'publishedAt' ).exists( ),    
         ];
     }
