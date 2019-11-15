@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { check, validationResult, } = require( 'express-validator' );
 const multer = require('multer');
 const { Articles, Users, Comments, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
@@ -9,7 +8,6 @@ const { isAuth } = require('../lib/passport');
 const { GoogleStorage } = require('../lib/storage/google-storage');
 const ArticlesService = require( '../services/articles' );
 const CommentsService = require( '../services/comments' );
-const { validateArticle, validateComment } = require('./helper');
 
 
 const router = $express.Router({
