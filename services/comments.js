@@ -34,7 +34,7 @@ class CommentsService {
 
     validationCheckOnComments() {
         return [
-            check( 'content' ).isLength( { min: 3, max: 200, } ),    
+            check( 'content' ).isLength( { max: 200, } )  
         ];
     }
 

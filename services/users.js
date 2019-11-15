@@ -5,8 +5,12 @@ const { Users, Sequelize, } = require('../dbms/sequelize/models');
 class UsersService {
     validationCheckOnEdit() {
         return [
-            check( 'firstName' ).isLength( { min: 2, max: 20, } ),    
-            check( 'lastName' ).isLength( { min: 2, max: 20, } ),    
+            check( 'firstName' )
+                .isLength( { min: 1, max: 20, } )
+                .withMessage("First name cannot be empty"),    
+            check( 'lastName' )
+                .isLength( { min: 1, max: 20, } )
+                .withMessage("Last name cannot be empty"),  
         ];
     }
 

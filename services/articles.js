@@ -51,8 +51,12 @@ class ArticlesService {
 
     validationCheckOnCreate() {
         return [
-            check( 'title' ).isLength( { min: 3, } ),
-            check( 'content' ).isLength( { min: 3, max: 1000, } ),
+            check( 'title' )
+                .isLength( { min: 2, } )
+                .withMessage("Title must be at least 2 characters"),
+            check( 'content' )
+                .isLength( { min: 1, max: 1000, } )
+                .withMessage("Content cannot be empty"),
             check( 'publishedAt' ).exists( ),    
         ];
     }
