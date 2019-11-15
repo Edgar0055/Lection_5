@@ -3,10 +3,11 @@ const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, validate } = require('./helper');
+const { validateUser, } = require('./helper');
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const ArticlesService = require( '../services/articles' );
 
 
 const router = $express.Router({
@@ -140,26 +141,10 @@ router.delete('/profile',
 ));
 
 router.get('/users/:userId/blog',
-    asyncHandler(async (req, res, next) => {
-        const authorId = +req.params.userId;
-        let viewsAll = await ArticlesViews.find({
-            authorId,
-        }, {
-            views: 1,
-            articleId: 1,
-        } );
-        viewsAll = viewsAll.map( article => ( {
-            [ article.articleId ]: article.views
-        } ) );
-        viewsAll = Object.assign({}, ...viewsAll);
-        let articles = await Articles.findAll({
-            where: { authorId, },
-            include: [ { model: Users, as: 'author' } ],
-            order: [ ['updated_at', 'DESC'] ],
-        } );
-        articles = articles.map( article => {
-            article.views = viewsAll[ article.id ] || 0;
-            return article;
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
+            authorId: +req.params.userId,
         } );
         res.send({ data: articles });
     }

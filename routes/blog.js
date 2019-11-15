@@ -1,12 +1,14 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users } = require('../dbms/sequelize/models');
+const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe, validate } = require('./helper');
+const { bodySafe } = require( './helper' );
 const { isAuth } = require('../lib/passport');
 const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const ArticlesService = require( '../services/articles' );
+const CommentsService = require( '../services/comments' );
 
 
 const router = $express.Router({
@@ -27,23 +29,11 @@ const avatarUpload = multer({
     limits: { fileSize: 1024 * 1024 * 5, }
 }).single('picture');
 
+
 router.get('/',
-    asyncHandler(async (req, res, next ) => {
-        let viewsAll = await ArticlesViews.find({}, {
-            views: 1,
-            articleId: 1,
-        } );
-        viewsAll = viewsAll.map( article => ( {
-            [ article.articleId ]: article.views,
-        } ) );
-        viewsAll = Object.assign({}, ...viewsAll);
-        let articles = await Articles.findAll({
-            include: [{ model: Users, as: 'author' }],
-            order: [['id', 'DESC']]
-        } );
-        articles = articles.map( article => {
-            article.views = viewsAll[ article.id ] || 0;
-            return article;
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
         } );
         res.send({ data: articles });    
     }
@@ -52,7 +42,7 @@ router.get('/',
 router.post('/',
     isAuth(),
     avatarUpload,
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const body = bodySafe( req.body, 'title content publishedAt' );
         if ( req.file ) {
@@ -68,7 +58,7 @@ router.post('/',
 ));
 
 router.get('/:blogId',
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
             include: [ { model: Users, as: 'author' } ],
@@ -90,7 +80,7 @@ router.get('/:blogId',
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         const body = bodySafe( req.body, 'title content publishedAt' );
@@ -125,7 +115,7 @@ router.put('/:blogId',
 
 router.delete('/:blogId',
     isAuth(),
-    asyncHandler(async (req, res, next) => {
+    asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
         const blogId = +req.params.blogId;
         let article = await Articles.findOne({
@@ -141,4 +131,48 @@ router.delete('/:blogId',
     }
 ));
 
+router.get('/:articleId/comments',
+    asyncHandler(async ( req, res ) => {
+        const comments = await CommentsService.getComments( {
+            after: req.query.after,
+            articleId: +req.params.articleId,
+        } );
+        res.send({ data: comments });
+    })
+);
+
+router.post('/:articleId/comments',
+    isAuth(),
+    asyncHandler(async (req, res,) => {
+        const authorId = +req.user.id;
+        const articleId = +req.params.articleId;
+        const body = bodySafe( req.body, 'content' );
+        let comment = await Comments.create({
+            ...body, authorId, articleId,
+        });
+        comment = await Comments.findByPk(comment.id, {
+            include: [
+                { model: Users.scope('comment'), as: 'author', },
+            ],
+        });
+        res.send({ data: comment });
+    })
+);
+
+router.delete('/:articleId/comments/:commentId',
+    isAuth(),
+    asyncHandler(async (req, res) => {
+        const authorId = +req.user.id;
+        const articleId = +req.params.articleId;
+        const commentId = +req.params.commentId;
+        const comment = await Comments.findOne({
+            where: {id: commentId, articleId, authorId, },
+        });
+        if ( !comment ) {
+            throw new Error('Comment not found');
+        }
+        await comment.destroy();
+        res.end();
+    })
+);
 module.exports = router;

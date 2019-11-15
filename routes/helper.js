@@ -1,5 +1,6 @@
 /* eslint-disable no-useless-escape */
 /* eslint-disable no-undef */
+const { ArticlesViews } = require('../dbms/mongodb/models');
 
 module.exports.validate = ( type ) = (_) => {
     switch (type) {
@@ -21,3 +22,4 @@ module.exports.bodySafe = ( body, keys ) => {
             .filter( ( [ key ] ) => keys.includes( key ) )
     );
 };
+
