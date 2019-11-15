@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         viewsCount: DataTypes.VIRTUAL,
         articlesCount: DataTypes.VIRTUAL,
+        is_verified: {
+            allowNull: false,
+            defaultValue: false,
+            type: Sequelize.BOOLEAN,
+        },
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
