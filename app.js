@@ -5,7 +5,6 @@ const { validationResult, } = require('express-validator');
 const app = $express();
 
 const $process = require('process');
-const $pug = require('pug');
 const $logger = require('./logger/logger');
 const { requestsLimiter, } = require('./lib/limiter');
 const { connect: sequelizeConnect, } = require('./dbms/sequelize/models');
@@ -37,7 +36,6 @@ app.use($passport.session());
 const $bodyParser = require('body-parser');
 app.use($bodyParser.urlencoded({ extended: false }));
 app.use($bodyParser.json());
-app.engine('pug', $pug.__express);
 
 app.set('trust proxy', 1);
 

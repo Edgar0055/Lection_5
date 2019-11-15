@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
         is_verified: {
             allowNull: false,
             defaultValue: false,
-            type: Sequelize.BOOLEAN,
+            type: DataTypes.BOOLEAN,
         },
         createdAt: {
             allowNull: false,
