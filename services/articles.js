@@ -71,8 +71,8 @@ class ArticlesService {
         }
     }
 
-    async validationResultOnEdit() {
-        return await this.validationResultOnCreate();
+    async validationResultOnEdit( req, storage ) {
+        return await this.validationResultOnCreate( req, storage );
     }
 
 }

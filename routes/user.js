@@ -11,7 +11,6 @@ const ArticlesService = require( '../services/articles' );
 const UsersService = require( '../services/users' );
 
 
-
 const router = $express.Router({
     caseSensitive: true,
     mergeParams: false,
@@ -99,7 +98,7 @@ router.put('/profile',
     isAuth(),
     UsersService.validationCheckOnEdit(),
     asyncHandler(async (req, res, next) => {
-        await UsersService.validationResultOnEdit( req, );
+        await UsersService.validationResultOnEdit( req );
         const userId = +req.user.id;
         const { firstName, lastName, } = req.body;
         const user = await Users.findByPk( userId );
