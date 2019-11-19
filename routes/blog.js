@@ -61,9 +61,8 @@ router.get('/:blogId',
 router.post('/',
     isAuth(),
     avatarUpload,
-    ArticlesService.validationCheckOnCreate(),
+    ArticlesService.validationOnCreate( pictureStorage ),
     asyncHandler( async ( req, res ) => {
-        await ArticlesService.validationResultOnCreate( req, pictureStorage );
         const authorId = +req.user.id;
         const { title, content, publishedAt, } = req.body;
         const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
@@ -79,9 +78,8 @@ router.post('/',
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
-    ArticlesService.validationCheckOnEdit(),
+    ArticlesService.validationOnEdit( pictureStorage ),
     asyncHandler( async ( req, res ) => {
-        await ArticlesService.validationResultOnEdit( req, pictureStorage );
         const authorId = +req.user.id;
         const articleId = +req.params.blogId;
         const { title, content, publishedAt, } = req.body;
@@ -147,9 +145,8 @@ router.get('/:articleId/comments',
 
 router.post('/:articleId/comments',
     isAuth(),
-    CommentsService.validationCheckOnComments(),
+    CommentsService.validationOnComments(),
     asyncHandler(async (req, res,) => {
-        await CommentsService.validationResultOnComments( req );
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
         const { content, } = req.body;

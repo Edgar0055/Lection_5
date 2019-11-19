@@ -1,6 +1,7 @@
-const { check, validationResult, } = require( 'express-validator' );
+const { body, validationResult, } = require( 'express-validator' );
 const { Articles, Users, Sequelize, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
+const { validation, } = require( '../lib/validation' );
 
 
 class ArticlesService {
@@ -49,37 +50,47 @@ class ArticlesService {
         return articles;
     }
 
-    validationCheckOnCreate() {
-        return [
-            check( 'title' )
-                .isLength( { min: 2, } )
-                .withMessage("Title must be at least 2 characters"),
-            check( 'content' )
-                .isLength( { min: 1, } )
-                .withMessage("Content cannot be empty"),
-            check( 'content' )
-                .isLength( { max: 1000, } )
-                .withMessage("Content is too long"),
-            check( 'publishedAt' ).exists( ),    
-        ];
-    }
+    validateTitle = body( 'title' )
+        .isLength( { min: 2, } )
+        .withMessage( 'Title must be at least 2 characters' );
+    
+    validateContent = [
+        body( 'content' )
+            .isLength( { min: 1, } )
+            .withMessage( 'Content cannot be empty' ),
+        body( 'content' )
+            .isLength( { max: 1000, } )
+            .withMessage( 'Content is too long' ),
+    ];
 
-    validationCheckOnEdit() {
-        return this.validationCheckOnCreate();
-    }
+    validatePublishedAt = body( 'publishedAt' )
+        .exists()
+        .withMessage( 'Published not empty' );
 
-    async validationResultOnCreate( req, storage ) {
+    storageClean = ( storage ) => async ( req, res, next ) => {
         const errors = validationResult( req );
-        if ( !errors.isEmpty() ) {
-            if ( req.file ) {
-                await storage.deleteFile( req.file.path );
-            }
-            throw new Error( `my validation` );
+        if ( !errors.isEmpty() && req.file ) {
+            await storage.deleteFile( req.file.path );
         }
+        next();
+    }
+    
+    validationOnCreate( storage ) {
+        return validation( [
+            this.validateTitle,
+            this.validateContent,
+            this.validatePublishedAt,
+            this.storageClean( storage ),
+        ] );
     }
 
-    async validationResultOnEdit( req, storage ) {
-        return await this.validationResultOnCreate( req, storage );
+    validationOnEdit( storage ) {
+        return validation( [
+            this.validateTitle,
+            this.validateContent,
+            this.validatePublishedAt,
+            this.storageClean( storage ),
+        ] );
     }
 
 }

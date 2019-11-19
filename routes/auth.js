@@ -58,9 +58,8 @@ $passport.use(new $FacebookStrategy({
 ));
 
 router.post('/registration',
-    UsersService.validationCheckOnRegistation(),
+    UsersService.validationOnRegistation(),
     asyncHandler(async (req, res, next) => {
-        await UsersService.validationResultOnRegistration( req );
         const body = req.body;
         const candidate = await Users.findOne( {
             where: { email: body.email, }
@@ -85,11 +84,10 @@ router.post('/registration',
 ));
 
 router.post('/login',
-    UsersService.validationCheckOnLogin(),
     loginLimiter,
+    UsersService.validationOnLogin(),
     $passport.authenticate('local', { }),
     asyncHandler(async (req, res, next) => {
-        await UsersService.validationResultOnLogin( req );
         const { password, ...user } = req.user;
         res.json({ data: user, });
     })

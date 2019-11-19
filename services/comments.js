@@ -1,5 +1,6 @@
-const { check, validationResult, } = require( 'express-validator' );
+const { body, } = require( 'express-validator' );
 const { Comments, Users, Sequelize, } = require('../dbms/sequelize/models');
+const { validation, } = require( '../lib/validation' );
 
 
 class CommentsService {
@@ -32,20 +33,16 @@ class CommentsService {
         return comments;
     }
 
-    validationCheckOnComments() {
-        return [
-            check( 'content' )
-                .isLength( { max: 200, } )
-                .withMessage("Content too long"),  
-        ];
+    validateContent = body( 'content' )
+        .isLength( { max: 200, } )
+        .withMessage( 'Content too long' );
+
+    validationOnComments() {
+        return validation( [
+            this.validateContent,
+        ] );
     }
 
-    async validationResultOnComments( req ) {
-        const errors = validationResult( req );
-        if ( !errors.isEmpty() ) {
-            throw new Error( `my validation` );
-        }
-    }
 }
 
 module.exports = new CommentsService();
