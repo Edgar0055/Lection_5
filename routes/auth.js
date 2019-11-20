@@ -77,7 +77,7 @@ router.post( '/registration',
         } );
         user = user.toJSON();
         const token = jwt.sign( { email, }, $process.env.JWT_SECRET, { expiresIn: "1h" } );
-        verifyEmail( email, token );
+        await verifyEmail( email, token );
         res.send( { data: user } );
     } )
 );
