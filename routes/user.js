@@ -97,6 +97,7 @@ router.put('/profile',
     isAuth(),
     UsersService.validationOnEdit(),
     asyncHandler(async (req, res, next) => {
+        await UsersService.validationResultOnEdit( req );
         const userId = +req.user.id;
         const { firstName, lastName, } = req.body;
         const user = await Users.findByPk( userId );

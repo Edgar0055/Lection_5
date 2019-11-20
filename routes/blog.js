@@ -80,6 +80,7 @@ router.put('/:blogId',
     avatarUpload,
     ArticlesService.validationOnEdit( pictureStorage ),
     asyncHandler( async ( req, res ) => {
+        await ArticlesService.validationResultOnEdit( req, pictureStorage );
         const authorId = +req.user.id;
         const articleId = +req.params.blogId;
         const { title, content, publishedAt, } = req.body;
@@ -147,6 +148,7 @@ router.post('/:articleId/comments',
     isAuth(),
     CommentsService.validationOnComments(),
     asyncHandler(async (req, res,) => {
+        await CommentsService.validationResultOnComments( req );
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
         const { content, } = req.body;
