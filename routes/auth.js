@@ -83,7 +83,7 @@ router.post( '/registration',
 );
 
 router.post( '/registration/verify',
-    asyncHandler( async ( req, res ) => {
+    asyncHandler( async ( req, res, next ) => {
         const { token, } = req.body;
         jwt.verify( token, $process.env.JWT_SECRET, async ( error, data ) => {
             if ( error ) {
