@@ -1,13 +1,13 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
+const multer = require('multer');
 const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { validateUser, } = require('./helper');
 const { isAuth } = require('../lib/passport');
-const multer = require('multer');
 const { GoogleStorage } = require('../lib/storage/google-storage');
 const ArticlesService = require( '../services/articles' );
+const UsersService = require( '../services/users' );
 
 
 const router = $express.Router({
@@ -65,6 +65,16 @@ router.get('/users',
     }
 ));
 
+router.get('/users/:userId/blog',
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
+            authorId: +req.params.userId,
+        } );
+        res.send({ data: articles });
+    }
+));
+
 router.get('/users/:userId',
     asyncHandler(async (req, res, next) => {
         const authorId = +req.params.userId;
@@ -85,14 +95,15 @@ router.get('/users/:userId',
 
 router.put('/profile',
     isAuth(),
+    UsersService.validationOnEdit(),
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const body = bodySafe( req.body, 'firstName lastName' );
+        const { firstName, lastName, } = req.body;
         const user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
-        await user.update( body );
+        await user.update( { firstName, lastName, } );
         res.send({ data: user });
     }
 ));
@@ -137,16 +148,6 @@ router.delete('/profile',
         await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
         res.end();
-    }
-));
-
-router.get('/users/:userId/blog',
-    asyncHandler( async ( req, res ) => {
-        const articles = await ArticlesService.getArticlesWithViews( {
-            after: req.query.after,
-            authorId: +req.params.userId,
-        } );
-        res.send({ data: articles });
     }
 ));
 

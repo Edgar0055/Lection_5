@@ -1,4 +1,6 @@
+const { body, } = require( 'express-validator' );
 const { Comments, Users, Sequelize, } = require('../dbms/sequelize/models');
+const { validation, } = require( '../lib/validation' );
 
 
 class CommentsService {
@@ -30,6 +32,17 @@ class CommentsService {
 
         return comments;
     }
+
+    validateContent = body( 'content' )
+        .isLength( { max: 200, } )
+        .withMessage( 'Content too long' );
+
+    validationOnComments() {
+        return validation( [
+            this.validateContent,
+        ] );
+    }
+
 }
 
 module.exports = new CommentsService();

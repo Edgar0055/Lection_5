@@ -27,6 +27,7 @@
     "express-async-handler": "^1.1.4",
     "express-rate-limit": "^5.0.0",
     "express-session": "^1.17.0",
+    "express-validator": "^6.2.0",
     "express-winston": "^4.0.1",
     "https": "^1.0.0",
     "jsonwebtoken": "^8.5.1",

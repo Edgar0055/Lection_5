@@ -5,10 +5,11 @@ const $bcrypt = require('bcryptjs');
 const $jwt = require('jsonwebtoken');
 const $process = require('process');
 const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
-const { bodySafe, validate } = require('./helper');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
 const { providerLogin } = require('../lib/passport/provider');
+const UsersService = require( '../services/users' );
+
 
 const router = $express.Router({
     caseSensitive: true,
@@ -57,8 +58,9 @@ $passport.use(new $FacebookStrategy({
 ));
 
 router.post('/registration',
+    UsersService.validationOnRegistation(),
     asyncHandler(async (req, res, next) => {
-        const body = bodySafe( req.body, 'firstName lastName email password' );
+        const body = req.body;
         const candidate = await Users.findOne( {
             where: { email: body.email, }
         } );
@@ -83,6 +85,7 @@ router.post('/registration',
 
 router.post('/login',
     loginLimiter,
+    UsersService.validationOnLogin(),
     $passport.authenticate('local', { }),
     asyncHandler(async (req, res, next) => {
         const { password, ...user } = req.user;

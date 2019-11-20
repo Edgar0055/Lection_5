@@ -1,11 +1,10 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users, Comments, Sequelize } = require('../dbms/sequelize/models');
-const { ArticlesViews } = require('../dbms/mongodb/models');
-const { bodySafe } = require( './helper' );
-const { isAuth } = require('../lib/passport');
 const multer = require('multer');
+const { Articles, Users, Comments, } = require('../dbms/sequelize/models');
+const { ArticlesViews } = require('../dbms/mongodb/models');
+const { isAuth } = require('../lib/passport');
 const { GoogleStorage } = require('../lib/storage/google-storage');
 const ArticlesService = require( '../services/articles' );
 const CommentsService = require( '../services/comments' );
@@ -39,24 +38,6 @@ router.get('/',
     }
 ));
 
-router.post('/',
-    isAuth(),
-    avatarUpload,
-    asyncHandler( async ( req, res ) => {
-        const authorId = +req.user.id;
-        const body = bodySafe( req.body, 'title content publishedAt' );
-        if ( req.file ) {
-            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
-        }
-        let article = await Articles.create({ ...body, authorId, });
-        const { views } = await ArticlesViews.create({
-            articleId: article.id, authorId, views: 0,
-        });
-        article.views = views;
-        res.send({ data: article });
-    }
-));
-
 router.get('/:blogId',
     asyncHandler( async ( req, res ) => {
         const blogId = +req.params.blogId;
@@ -77,29 +58,49 @@ router.get('/:blogId',
     }
 ));
 
+router.post('/',
+    isAuth(),
+    avatarUpload,
+    ArticlesService.validationOnCreate( pictureStorage ),
+    asyncHandler( async ( req, res ) => {
+        const authorId = +req.user.id;
+        const { title, content, publishedAt, } = req.body;
+        const picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
+        const article = await Articles.create( { title, content, publishedAt, authorId, picture, } );
+        const { views } = await ArticlesViews.create( {
+            articleId: article.id, authorId, views: 0,
+        } );
+        article.views = views;
+        res.send( { data: article } );
+    }
+) );
+
 router.put('/:blogId',
     isAuth(),
     avatarUpload,
+    ArticlesService.validationOnEdit( pictureStorage ),
     asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
-        const blogId = +req.params.blogId;
-        const body = bodySafe( req.body, 'title content publishedAt' );
+        const articleId = +req.params.blogId;
+        const { title, content, publishedAt, } = req.body;
+        let picture = req.file ? `${ pictureStorage.prefix }${ req.file.path }` : null;
         const article = await Articles.findOne({
-            where: { id: blogId, authorId, }
+            where: { id: articleId, authorId, }
         });
         if ( !article ) {
-            await pictureStorage.deleteFile( req.file.path ); 
+            if ( req.file ) {
+                await pictureStorage.deleteFile( req.file.path );
+            }
             throw new Error('Article not found');
-        } else if ( article.picture && req.file ) {
+        } else if ( article.picture && ( picture || 'picture' in req.body ) ) {
             try {
                 const path = article.picture.replace( pictureStorage.prefix, '' );
                 await pictureStorage.deleteFile( path );    
             } catch ( error ) { }
+        } else if ( !picture ) {
+            picture = article.picture;
         }
-        if ( req.file ) {
-            body.picture = `${ pictureStorage.prefix }${ req.file.path }`;    
-        }
-        await article.update( body );
+        await article.update( { title, content, publishedAt, picture, } );
         const articlesViews = await ArticlesViews.findOneAndUpdate({
             articleId: article.id,
         }, {
@@ -117,9 +118,9 @@ router.delete('/:blogId',
     isAuth(),
     asyncHandler( async ( req, res ) => {
         const authorId = +req.user.id;
-        const blogId = +req.params.blogId;
+        const articleId = +req.params.blogId;
         let article = await Articles.findOne({
-            where: { id: blogId, authorId }
+            where: { id: articleId, authorId }
         });
         if ( article.picture ) {
             const path = article.picture.replace( pictureStorage.prefix, '' );
@@ -130,6 +131,7 @@ router.delete('/:blogId',
         res.end();
     }
 ));
+
 
 router.get('/:articleId/comments',
     asyncHandler(async ( req, res ) => {
@@ -143,12 +145,13 @@ router.get('/:articleId/comments',
 
 router.post('/:articleId/comments',
     isAuth(),
+    CommentsService.validationOnComments(),
     asyncHandler(async (req, res,) => {
         const authorId = +req.user.id;
         const articleId = +req.params.articleId;
-        const body = bodySafe( req.body, 'content' );
+        const { content, } = req.body;
         let comment = await Comments.create({
-            ...body, authorId, articleId,
+            content, authorId, articleId,
         });
         comment = await Comments.findByPk(comment.id, {
             include: [
@@ -175,4 +178,5 @@ router.delete('/:articleId/comments/:commentId',
         res.end();
     })
 );
+
 module.exports = router;

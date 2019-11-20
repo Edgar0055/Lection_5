@@ -1,5 +1,7 @@
+const { body, validationResult, } = require( 'express-validator' );
 const { Articles, Users, Sequelize, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
+const { validation, } = require( '../lib/validation' );
 
 
 class ArticlesService {
@@ -47,6 +49,50 @@ class ArticlesService {
 
         return articles;
     }
+
+    validateTitle = body( 'title' )
+        .isLength( { min: 2, } )
+        .withMessage( 'Title must be at least 2 characters' );
+    
+    validateContent = [
+        body( 'content' )
+            .isLength( { min: 1, } )
+            .withMessage( 'Content cannot be empty' ),
+        body( 'content' )
+            .isLength( { max: 1000, } )
+            .withMessage( 'Content is too long' ),
+    ];
+
+    validatePublishedAt = body( 'publishedAt' )
+        .exists()
+        .withMessage( 'Published not empty' );
+
+    storageClean = ( storage ) => async ( req, res, next ) => {
+        const errors = validationResult( req );
+        if ( !errors.isEmpty() && req.file ) {
+            await storage.deleteFile( req.file.path );
+        }
+        next();
+    }
+    
+    validationOnCreate( storage ) {
+        return validation( [
+            this.validateTitle,
+            this.validateContent,
+            this.validatePublishedAt,
+            this.storageClean( storage ),
+        ] );
+    }
+
+    validationOnEdit( storage ) {
+        return validation( [
+            this.validateTitle,
+            this.validateContent,
+            this.validatePublishedAt,
+            this.storageClean( storage ),
+        ] );
+    }
+
 }
 
 module.exports = new ArticlesService();
