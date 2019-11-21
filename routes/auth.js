@@ -2,13 +2,14 @@
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
 const $bcrypt = require('bcryptjs');
-const $jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const $process = require('process');
 const { Users, OAuth_Account, } = require('../dbms/sequelize/models');
 const { loginLimiter, } = require('../lib/limiter');
 const { isAuth } = require('../lib/passport');
 const { providerLogin } = require('../lib/passport/provider');
 const UsersService = require( '../services/users' );
+const { verifyEmail, } = require( '../lib/sendgrid' );
 
 
 const router = $express.Router({
@@ -19,7 +20,7 @@ const router = $express.Router({
 
 const $passport = require('passport');
 const { Strategy: $LocalStrategy, } = require('passport-local');
-$passport.use(new $LocalStrategy({
+$passport.use( new $LocalStrategy({
     usernameField: 'email',
     passwordField: 'password',
     passReqToCallback: true,
@@ -57,40 +58,62 @@ $passport.use(new $FacebookStrategy({
   providerLogin,
 ));
 
-router.post('/registration',
+router.post( '/registration',
     UsersService.validationOnRegistation(),
-    asyncHandler(async (req, res, next) => {
-        const body = req.body;
+    asyncHandler( async ( req, res, next ) => {
+        const { firstName, lastName, email, password, } = req.body;
         const candidate = await Users.findOne( {
-            where: { email: body.email, }
+            where: { email: email, }
         } );
         if ( candidate ) {
-            throw new Error('Busy email. Try else email.');
+            throw new Error( 'Busy email. Try else email.' );
         }
         const salt = await $bcrypt.genSalt(10);
         let user = await Users.create({
-            ...body,
-            password: await $bcrypt.hash( body.password, salt ),
-        });
+            firstName,
+            lastName,
+            email,
+            password: await $bcrypt.hash( password, salt ),
+        } );
         user = user.toJSON();
-        req.logIn( user, ( error ) => {
-            if ( error ) {
-                next( error );
-            } else {
-                res.json({ data: user });
-            }
-        });
-    }
-));
+        const token = jwt.sign( { email, }, $process.env.JWT_SECRET, { expiresIn: "1h" } );
+        await verifyEmail( email, token );
+        res.send( { data: user } );
+    } )
+);
 
-router.post('/login',
+router.post( '/registration/verify',
+    asyncHandler( async ( req, res, next ) => {
+        const { token, } = req.body;
+        jwt.verify( token, $process.env.JWT_SECRET, async ( error, data ) => {
+            if ( error ) {
+                res.status(403).json({ errors: [{ msg: 'Try to register again' }] });
+            } else {
+                const { email, } =  data;
+                const user = await Users.findOne( {
+                    where: { email, }
+                } );
+                await user.update( { is_verified: true, } );
+                req.logIn( user, ( error ) => {
+                    if ( error ) {
+                        next( error );
+                    } else {
+                        res.json( { data: user } );
+                    }
+                } );        
+            }
+        } );
+    } )
+);
+
+router.post( '/login',
     loginLimiter,
     UsersService.validationOnLogin(),
     $passport.authenticate('local', { }),
     asyncHandler(async (req, res, next) => {
         const { password, ...user } = req.user;
-        res.json({ data: user, });
-    })
+        res.json( { data: user, } );
+    } )
 );
 
 router.post('/logout',
