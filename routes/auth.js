@@ -59,7 +59,7 @@ $passport.use(new $FacebookStrategy({
 ));
 
 router.post( '/registration',
-    UsersService.validationOnRegistation(),
+    UsersService.validationOnRegistration(),
     asyncHandler( async ( req, res, next ) => {
         const { firstName, lastName, email, password, } = req.body;
         const candidate = await Users.findOne( {
