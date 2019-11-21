@@ -33,7 +33,24 @@ module.exports = (sequelize, DataTypes) => {
         is_verified: {
             allowNull: false,
             defaultValue: false,
+            field: 'is_verified',
             type: DataTypes.BOOLEAN,
+        },
+        is_pro: {
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_pro',
+            type: DataTypes.BOOLEAN,      
+        },
+        stripe_customer_id: {
+            allowNull: true,
+            field: 'stripe_customer_id',
+            type: DataTypes.STRING,      
+        },
+        stripe_card_id: {
+            allowNull: true,
+            field: 'stripe_card_id',
+            type: DataTypes.STRING,      
         },
         createdAt: {
             allowNull: false,

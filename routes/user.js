@@ -6,6 +6,7 @@ const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
 const { isAuth } = require('../lib/passport');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const { customerCreate, sourceCreate, } = require( '../lib/stripe' );
 const ArticlesService = require( '../services/articles' );
 const UsersService = require( '../services/users' );
 
@@ -128,6 +129,27 @@ router.put('/profile/picture',
         res.send({ data: { picture, } });
     }
 ));
+
+router.put('/profile/card',
+    isAuth(),
+    asyncHandler( async ( req, res ) => {
+        const userId = +req.user.id;
+        const { token, } = req.body;
+        const user = await Users.findByPk( userId );
+        if ( !user ) {
+            throw new Error('User not found');
+        }
+        if ( !user.stripe_customer_id ) {
+            const customer = await customerCreate( user.email );
+            await user.update({ stripe_customer_id: customer.id, });
+        }
+        if ( !user.stripe_card_id ) {
+            const source = await sourceCreate( user.stripe_customer_id, token );
+            await user.update({ stripe_card_id: source.id, });
+        }
+        res.send({ data: user });
+    } )
+);
 
 router.delete('/profile',
     isAuth(),

@@ -41,6 +41,7 @@ app.set('trust proxy', 1);
 app.use('/api/v1', require('./routes/auth'));
 app.use('/api/v1/blog', requestsLimiter, require('./routes/blog'));
 app.use('/api/v1', requestsLimiter, require('./routes/user'));
+app.use('/api/v1', require('./routes/fees'));
 app.use(require('./routes/fe'));
 
 app.use( function ( error, req, res, next ) {
