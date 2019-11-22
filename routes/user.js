@@ -62,26 +62,26 @@ router.get('/users',
             user.viewsCount = viewsAll[ user.id ] || 0;
             return user;
         } );
-        res.send({ data: users });
+        res.send( { data: users } );
     }
 ));
 
-router.get('/users/:userId/blog',
+router.get( '/users/:userId/blog',
     asyncHandler( async ( req, res ) => {
         const articles = await ArticlesService.getArticlesWithViews( {
             after: req.query.after,
             authorId: +req.params.userId,
         } );
-        res.send({ data: articles });
+        res.send( { data: articles } );
     }
 ));
 
-router.get('/users/:userId',
+router.get( '/users/:userId',
     asyncHandler(async (req, res, next) => {
         const authorId = +req.params.userId;
-        let user = await Users.findOne({
+        let user = await Users.findOne( {
             where: { id: authorId }
-        });            
+        } );            
         const articlesViews = await ArticlesViews.aggregate()
             .match({ authorId: { $eq: authorId } })
             .group({
@@ -90,7 +90,7 @@ router.get('/users/:userId',
             });
         const { views } = articlesViews.shift() || { views: 0, };
         user.views = views;
-        res.send({ data: user });
+        res.send( { data: user } );
     }
 ));
 
@@ -100,12 +100,15 @@ router.put('/profile',
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
         const { firstName, lastName, } = req.body;
-        const user = await Users.findByPk( userId );
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
         await user.update( { firstName, lastName, } );
-        res.send({ data: user });
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
     }
 ));
 
@@ -114,7 +117,7 @@ router.put('/profile/picture',
     avatarUpload,
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const user = await Users.findByPk( userId );
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             await avatarStorage.deleteFile( req.file.path ); 
             throw new Error('User not found');
@@ -125,17 +128,20 @@ router.put('/profile/picture',
             } catch ( error ) { }
         }
         const picture = `${ avatarStorage.prefix }${ req.file.path }`;
-        await user.update({ picture, });
-        res.send({ data: { picture, } });
+        await user.update( { picture, } );
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: { picture, } } );
+        } );
     }
 ));
 
 router.put('/profile/card',
     isAuth(),
-    asyncHandler( async ( req, res ) => {
+    asyncHandler( async ( req, res, next ) => {
         const userId = +req.user.id;
         const { token, } = req.body;
-        const user = await Users.findByPk( userId );
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
@@ -147,7 +153,10 @@ router.put('/profile/card',
             const source = await sourceCreate( user.stripe_customer_id, token );
             await user.update({ stripe_card_id: source.id, });
         }
-        res.send({ data: user });
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
     } )
 );
 
@@ -169,6 +178,7 @@ router.delete('/profile',
         } catch (error) { }
         await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
+        req.logOut();
         res.end();
     }
 ));

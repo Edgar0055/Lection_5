@@ -4,7 +4,7 @@ const asyncHandler = require('express-async-handler');
 const { Users, } = require('../dbms/sequelize/models');
 const { isAuth } = require('../lib/passport');
 const UsersService = require( '../services/users' );
-const { customerPaymentList, customerPaymentTotal, customerPaymentCreate, } = require( '../lib/stripe' );
+const { customerPaymentTotal, customerPaymentCreate, } = require( '../lib/stripe' );
 const { paymentEmail, proEmail, } = require( '../lib/sendgrid' );
 
 
@@ -38,9 +38,9 @@ router.put('/fees',
     isAuth(),
     UsersService.validationOnFeesCharge(),
     asyncHandler( async ( req, res ) => {
-        const userId = +req.user.id;
-        let user = await Users.findByPk( userId );
-        const { amount, } = req.body;
+        let user = req.user;
+        let { amount, } = req.body;
+        amount = +amount * 100;
         if ( !user ) {
             throw new Error('User not found');
         } else if ( !user.stripe_customer_id ) {
@@ -51,22 +51,28 @@ router.put('/fees',
         const payment = await customerPaymentCreate(
             user.stripe_customer_id,
             user.stripe_card_id,
-            +amount * 100,
+            amount,
             CURRENCY,
             `Payment of ${ user.email }`,
         );
         await paymentEmail( user.email, payment.receipt_url );
-        let needed = 0;
-        if ( !user.is_pro ) {
+        if ( user.is_pro ) {
+            res.send({ data: { amount: 0, user, } });
+        } else {
             const payed = await customerPaymentTotal( user.stripe_customer_id );
-            needed = AMOUNT * 100 - payed;
-            if ( needed <= 0 ) {
+            const needed = Math.max( AMOUNT * 100 - payed, 0 ) / 100;
+            if ( needed > 0 ) {
+                res.send({ data: { amount: needed, user, } });
+            } else {
+                user = await Users.findByPk( user.id );
                 await user.update( { is_pro: true, } );
+                user = user.toJSON();
+                req.logIn( user, ( error ) => {
+                    error ? next( error ) : res.send( { data: { amount: 0, user, } } );
+                } );
                 await proEmail( user.email );
             }
-            needed = needed / 100;
         }
-        res.send({ data: { amount: needed, user: user.toJSON(), } });
     } )
 );
 

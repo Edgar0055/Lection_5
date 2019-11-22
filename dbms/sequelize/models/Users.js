@@ -71,10 +71,20 @@ module.exports = (sequelize, DataTypes) => {
             },
         },
         scopes: {
-            auth: { attributes: { include: [ 'password', ], } },
+            auth: {
+                attributes: {
+                    include: [ 'password', ],
+                }
+            },
             comment: {
                 attributes: [ 'id', 'firstName', 'lastName', 'picture', ],
             },
+            safe: {
+                attributes: {
+                    exclude: [ 'password', 'stripe_customer_id', 'stripe_card_id', ],
+                }
+            },
+
         }
     });
     Users.associate = (models) => {

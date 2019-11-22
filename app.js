@@ -13,11 +13,11 @@ const $session = require('express-session');
 const { $redisClient, $redisStore, } = require('./lib/redis');
 
 const $passport = require('passport');
-$passport.serializeUser((user, done) => {
-    done(null, user);
+$passport.serializeUser( ( user, done ) => {
+    done( null, user );
 });
-$passport.deserializeUser((user, done) => {
-    done(null, user);
+$passport.deserializeUser( ( user, done ) => {
+    done( null, user );
 });
 
 app.use($session({
