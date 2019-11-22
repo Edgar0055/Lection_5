@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 const $express = require( 'express' );
 const asyncHandler = require( 'express-async-handler' );
-const $bcrypt = require ('bcryptjs' );
+const $bcrypt = require ( 'bcryptjs' );
 const jwt = require( 'jsonwebtoken' );
 const $process = require( 'process' );
 const { Users, OAuth_Account, } = require( '../dbms/sequelize/models' );
