@@ -21,7 +21,12 @@ class UsersService {
         .isLength( { min: 1, max: 20, } )
         .withMessage( 'Last name length must be in range [1, 20] chars' );
 
-    validationOnRegistation() {
+    validateFeesAmount = body( 'amount' )
+        .isNumeric( { no_symbols: false, } )
+        .withMessage( 'Amount must be positive number' );
+
+
+    validationOnRegistration() {
         return validation( [
             this.validateEmail,
             this.validatePassword,
@@ -41,6 +46,12 @@ class UsersService {
         return validation( [
             this.validateFirstName,
             this.validateLastName,
+        ] );
+    }
+
+    validationOnFeesCharge() {
+        return validation( [
+            this.validateFeesAmount,
         ] );
     }
 

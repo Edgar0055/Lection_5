@@ -44,6 +44,7 @@
     "redis": "^2.8.0",
     "sequelize": "^5.19.4",
     "sharp": "^0.23.2",
+    "stripe": "^7.13.0",
     "winston": "^3.2.1",
     "winston-mongodb": "^5.0.0"
   },

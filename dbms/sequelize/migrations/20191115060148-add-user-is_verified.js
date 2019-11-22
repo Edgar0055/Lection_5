@@ -13,7 +13,7 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn( 'Users', 'is_verified', {} );
     await queryInterface.removeIndex( 'Users', 'IndexIsVerified' );
-  }
+    await queryInterface.removeColumn( 'Users', 'is_verified', {} );
+  },
 };
