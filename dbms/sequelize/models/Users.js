@@ -25,11 +25,33 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING
         },
-        // picture: {
- 
-        // },
+        picture: {
+            type: DataTypes.STRING,
+        },
         viewsCount: DataTypes.VIRTUAL,
         articlesCount: DataTypes.VIRTUAL,
+        is_verified: {
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_verified',
+            type: DataTypes.BOOLEAN,
+        },
+        is_pro: {
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_pro',
+            type: DataTypes.BOOLEAN,      
+        },
+        stripe_customer_id: {
+            allowNull: true,
+            field: 'stripe_customer_id',
+            type: DataTypes.STRING,      
+        },
+        stripe_card_id: {
+            allowNull: true,
+            field: 'stripe_card_id',
+            type: DataTypes.STRING,      
+        },
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
@@ -42,7 +64,29 @@ module.exports = (sequelize, DataTypes) => {
             field: 'updated_at',
             type: DataTypes.DATE
         }
-    }, {});
+    }, {
+        defaultScope: {
+            attributes: {
+                exclude: [ 'password', ],
+            },
+        },
+        scopes: {
+            auth: {
+                attributes: {
+                    include: [ 'password', ],
+                }
+            },
+            comment: {
+                attributes: [ 'id', 'firstName', 'lastName', 'picture', ],
+            },
+            safe: {
+                attributes: {
+                    exclude: [ 'password', 'stripe_customer_id', 'stripe_card_id', ],
+                }
+            },
+
+        }
+    });
     Users.associate = (models) => {
         Users.hasMany(models.Articles, {
             as: 'Articles',
@@ -52,7 +96,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             constraints: true,
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
         });
         Users.hasMany(models.OAuth_Account, {
             as: 'OAuth_Account',
@@ -62,7 +106,17 @@ module.exports = (sequelize, DataTypes) => {
             },
             constraints: true,
             onUpdate: 'CASCADE',
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
+        });
+        Users.hasMany(models.Comments, {
+            as: 'Comments',
+            foreignKey: {
+                name: 'authorId',
+                allowNull: false
+            },
+            constraints: true,
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
         });
     };
     return Users;

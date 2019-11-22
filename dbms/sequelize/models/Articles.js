@@ -38,6 +38,9 @@ module.exports = (sequelize, DataTypes) => {
             field: 'published_at',
             type: DataTypes.DATE
         },
+        picture: {
+            type: DataTypes.STRING,
+        },
         views: DataTypes.VIRTUAL,
         createdAt: {
             allowNull: false,
@@ -57,10 +60,20 @@ module.exports = (sequelize, DataTypes) => {
             as: 'author',
             foreignKey: {
                 name: 'authorId',
-                allowNull: false
+                allowNull: false,
             },
             constraints: true,
-            onDelete: 'CASCADE'
+            onDelete: 'CASCADE',
+        });
+        Articles.hasMany(models.Comments, {
+            as: 'Comments',
+            foreignKey: {
+                name: 'articleId',
+                allowNull: false,
+            },
+            constraints: true,
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
         });
     };
     return Articles;

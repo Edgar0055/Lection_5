@@ -1,16 +1,34 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
+const multer = require('multer');
 const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, validate } = require('./helper');
 const { isAuth } = require('../lib/passport');
+const { GoogleStorage } = require('../lib/storage/google-storage');
+const { customerCreate, sourceCreate, } = require( '../lib/stripe' );
+const ArticlesService = require( '../services/articles' );
+const UsersService = require( '../services/users' );
+
 
 const router = $express.Router({
     caseSensitive: true,
     mergeParams: false,
     strict: true
 });
+const avatarStorage = new GoogleStorage({
+    key: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    url: process.env.GCS_URL_PREFIX,
+    bucket: process.env.GCS_BUCKET,
+    owner: 'edgar',
+    folder: 'avatars',
+    size: { width: 180, height: 180, },
+});
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 1024 * 1024 * 5, }
+}).single('picture');
+
 
 router.get('/users',
     asyncHandler(async (req, res, next) => {
@@ -44,16 +62,26 @@ router.get('/users',
             user.viewsCount = viewsAll[ user.id ] || 0;
             return user;
         } );
-        res.send({ data: users });
+        res.send( { data: users } );
     }
 ));
 
-router.get('/users/:userId',
+router.get( '/users/:userId/blog',
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
+            authorId: +req.params.userId,
+        } );
+        res.send( { data: articles } );
+    }
+));
+
+router.get( '/users/:userId',
     asyncHandler(async (req, res, next) => {
         const authorId = +req.params.userId;
-        let user = await Users.findOne({
+        let user = await Users.findOne( {
             where: { id: authorId }
-        });            
+        } );            
         const articlesViews = await ArticlesViews.aggregate()
             .match({ authorId: { $eq: authorId } })
             .group({
@@ -62,59 +90,96 @@ router.get('/users/:userId',
             });
         const { views } = articlesViews.shift() || { views: 0, };
         user.views = views;
-        res.send({ data: user });
+        res.send( { data: user } );
     }
 ));
 
 router.put('/profile',
     isAuth(),
+    UsersService.validationOnEdit(),
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const body = bodySafe( req.body, 'firstName lastName' );
-        const user = await Users.findByPk( userId );
+        const { firstName, lastName, } = req.body;
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
-        await user.update( body );
-        res.send({ data: user });
+        await user.update( { firstName, lastName, } );
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
     }
 ));
+
+router.put('/profile/picture',
+    isAuth(),
+    avatarUpload,
+    asyncHandler(async (req, res, next) => {
+        const userId = +req.user.id;
+        let user = await Users.findByPk( userId );
+        if ( !user ) {
+            await avatarStorage.deleteFile( req.file.path ); 
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( avatarStorage.prefix, '' );
+                await avatarStorage.deleteFile( path );    
+            } catch ( error ) { }
+        }
+        const picture = `${ avatarStorage.prefix }${ req.file.path }`;
+        await user.update( { picture, } );
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: { picture, } } );
+        } );
+    }
+));
+
+router.put('/profile/card',
+    isAuth(),
+    asyncHandler( async ( req, res, next ) => {
+        const userId = +req.user.id;
+        const { token, } = req.body;
+        let user = await Users.findByPk( userId );
+        if ( !user ) {
+            throw new Error('User not found');
+        }
+        if ( !user.stripe_customer_id ) {
+            const customer = await customerCreate( user.email );
+            await user.update({ stripe_customer_id: customer.id, });
+        }
+        if ( !user.stripe_card_id ) {
+            const source = await sourceCreate( user.stripe_customer_id, token );
+            await user.update({ stripe_card_id: source.id, });
+        }
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
+    } )
+);
 
 router.delete('/profile',
     isAuth(),
     asyncHandler(async (req, res, next) => {
         const authorId = +req.user.id;
-        await Users.destroy({
-            where: { id: authorId, }
-        });
+        const user = await Users.findByPk( authorId );
+        if ( !user ) {
+            throw new Error('User not found');
+        } else if ( user.picture ) {
+            try {
+                const path = user.picture.replace( avatarStorage.prefix, '' );
+                await avatarStorage.deleteFile( path );        
+            } catch ( error ) { }
+        }
+        try {
+            await avatarStorage.deleteUserFiles( +req.user.id );
+        } catch (error) { }
+        await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
+        req.logOut();
         res.end();
-    }
-));
-
-router.get('/users/:userId/blog',
-    asyncHandler(async (req, res, next) => {
-        const authorId = +req.params.userId;
-        let viewsAll = await ArticlesViews.find({
-            authorId,
-        }, {
-            views: 1,
-            articleId: 1,
-        } );
-        viewsAll = viewsAll.map( article => ( {
-            [ article.articleId ]: article.views
-        } ) );
-        viewsAll = Object.assign({}, ...viewsAll);
-        let articles = await Articles.findAll({
-            where: { authorId, },
-            include: [ { model: Users, as: 'author' } ],
-            order: [ ['updated_at', 'DESC'] ],
-        } );
-        articles = articles.map( article => {
-            article.views = viewsAll[ article.id ] || 0;
-            return article;
-        } );
-        res.send({ data: articles });
     }
 ));
 
