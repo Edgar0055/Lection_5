@@ -49,7 +49,7 @@ jobs:
       # run tests!
       - run: yarn test
 workflows:
-  version: 1
+  version: 2
   build-and-deploy:
     jobs:
       - build:
