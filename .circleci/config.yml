@@ -48,4 +48,11 @@ jobs:
 
       # run tests!
       - run: yarn test
-
+workflows:
+  version: 1
+  build-and-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: NODE-146
