@@ -1,0 +1,17 @@
+paths:
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: Get list of users
+      responses:
+        200:
+          description: Users reponses
+          content:
+            applicatin/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfUsers'
+
