@@ -27,17 +27,16 @@ const swaggerUiOptions = {
     swaggerOptions: {
         filter: true,
         requestInterceptor: ( req ) => {
-            const regex = /XSRF-TOKEN=(.[^;]*)/ig;
-            const match = regex.exec( document.cookie );
-            req.headers[ 'x-csrf-token' ] = match[1];
+            try {
+                const regex = /XSRF-TOKEN=(.[^;]*)/ig;
+                const match = regex.exec( document.cookie );
+                req.headers[ 'x-csrf-token' ] = match[1];    
+            } catch ( error ) {}
             return req;
         },
     },
 };
 
-// const express = require('express');
-// const router = express.Router();
-// router.use(
 module.exports = ( app ) => app.use(
     '/docs',
     ( req, res, next ) => {
@@ -51,12 +50,9 @@ module.exports = ( app ) => app.use(
             } );
             next();    
         } catch ( error ) {
-            console.log( error );
             next( error );
         }
     },
     swaggerUi.serve,
     swaggerUi.setup( null, swaggerUiOptions ),
 );
-
-// module.exports = router;

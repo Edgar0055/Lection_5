@@ -1,0 +1,5 @@
+components:
+  requestBodyPart:
+    firstName:
+      type: string
+      required: true

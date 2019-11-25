@@ -8,10 +8,127 @@ paths:
         200:
           description: Users reponses
           content:
-            applicatin/json:
+            application/json:
               schema:
                 type: object
                 properties:
                   data:
                     $ref: '#/components/schemas/ArrayOfUsers'
+  /api/v1/users/{userId}/blog:
+    get:
+      tags:
+        - Articles by User
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfArticles'
+    parameters:
+      - $ref: '#/components/parameters/userId'
+  /api/v1/users/{userId}:
+    get:
+      tags:
+        - User
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+    parameters:
+      - $ref: '#/components/parameters/userId'
+  /api/v1/profile:
+    put:
+      tags:
+        - Profile page
+      requestBody:
+        description: User edit data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBody/userEdit'
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+    delete:
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          $ref: '#/components/responses/401'
+  /api/v1/profile/picture:
+    put:
+      tags:
+        - Profile avatar
+      summary: Upload an avatar
+      requestBody:
+        description: User edit data
+        required: true
+        content: 
+          multipart/form-data:
+            schema:
+              $ref: '#/components/requestBody/userPicture'
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Picture'
+        422:
+          $ref: '#/components/responses/422'
+  /api/v1/profile/card:
+    put:
+      tags:
+        - Profile card
+      summary: Set Card for User
+      requestBody:
+        description: User init card
+        required: true
+        content: 
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+
 

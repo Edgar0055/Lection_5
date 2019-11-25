@@ -1,0 +1,17 @@
+components:
+  schemas:
+    NewArticle:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: false
+        content:
+          type: string
+          nullable: false
+        picture:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+          

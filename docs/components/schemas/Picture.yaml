@@ -1,0 +1,8 @@
+components:
+  schemas:
+    Picture:
+      type: object
+      properties:
+        picture:
+          type: string
+          

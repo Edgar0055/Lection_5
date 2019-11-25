@@ -1,0 +1,6 @@
+components:
+  schemas:
+    ArrayOfArticles:
+      type: array
+      items:
+        $ref: '#/components/schemas/Article'

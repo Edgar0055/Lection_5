@@ -1,0 +1,82 @@
+paths:
+  /api/v1/blog:
+    tags:
+      - Articles
+    get:
+      summary: Get list of articles
+      responses:
+        200:
+          description: Articles responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfArticles'
+    post:
+      summary: Craete new articles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/NewArticle'
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+
+  /api/v1/blog/{blogId}:
+    get:
+      summary: Get single article
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+    put:
+      summary: Edit single article
+      requestBody:
+        description: Article edit data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/NewArticle'
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+        422:
+          $ref: '#/components/responses/422'
+    delete:
+      summary: Remove single article
+      responses:
+        200:
+          description: hello
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          $ref: '#/components/responses/401'
+    parameters:
+      - $ref: '#/components/parameters/blogId'
