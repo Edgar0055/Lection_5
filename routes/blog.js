@@ -159,6 +159,7 @@ router.post('/:articleId/comments',
             ],
         });
         res.send({ data: comment });
+        // TODO: socket room: articleId  broudcast: [ "comment", { "action": "create", "data": { comment, } } ]
     })
 );
 
@@ -169,13 +170,14 @@ router.delete('/:articleId/comments/:commentId',
         const articleId = +req.params.articleId;
         const commentId = +req.params.commentId;
         const comment = await Comments.findOne({
-            where: {id: commentId, articleId, authorId, },
+            where: { id: commentId, articleId, authorId, },
         });
         if ( !comment ) {
             throw new Error('Comment not found');
         }
         await comment.destroy();
         res.end();
+        // TODO: socket room: articleId  broudcast: [ "comment", { "action": "destroy", "data": { comment, } } ]
     })
 );
 

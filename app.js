@@ -67,20 +67,22 @@ io.use( passportSocketIo.authorize( {
     secret: sessionConfig.secret,
     store: sessionConfig.store,
     fail: ( data, message, error, accept ) => {
+        // console.log( '! passportSocketIo.authorize: ', data, message );
         accept();
     },
 } ) );
 io.use( ( socket, next ) => {
+    // console.log( '! io.use: ', socket );
     // 
     next();
 } );
 
 io.on( 'connection', function ( socket ) {
-    console.log(`Socket ${ socket.id } connected.`);
+    console.log( '! connection: Socket', socket.id, 'connected.' );
     io.of( '/' ).adapter.clients( ( err, clients ) => {
-        console.log(`${clients.length} clients connected.`);
+        console.log( '!connection: ', `${ clients.length } clients connected.` );
     } );
-    console.log( socket.request.user );
+    console.log( '! connection: socket.request.user: ', socket.request.user );
     const userId = socket.request.user.id;
     const userName = socket.request.user.name || 'Anonymous';
     const isLoggedIn = socket.request.user.logged_in || false;
@@ -88,46 +90,46 @@ io.on( 'connection', function ( socket ) {
 
     socket.use( ( packet, next ) => {
         const event = packet[0];
-        console.log( { event } );
+        console.log( '! socket.use: event: ', { event } );
         rateLimiter.consume( ip ).then( ( consume ) => {
-            console.log({ consume });
-            next()
-        } ).catch((consume) => {
-            next(new Error('Rate limit error'));
+            console.log( '! socket.use: consume: ', { consume } );
+            next();
+        } ).catch( ( consume ) => {
+            next( new Error( 'Rate limit error' ) );
         } );
     } );
 
     socket.on( 'join', ( roomId ) => {
-        console.log( 'Joining to room id', roomId );
+        console.log( '! join: roomId: ', roomId );
         // check permission ?
         socket.join( `room-${roomId}`, () => {
-            const rooms = Object.keys(socket.rooms);
-            const message = `${userName} has joined to room ${roomId}`;
-            console.log(message);
-            console.log(rooms);
-            io.to( `room-${roomId}` ).emit('message', { roomId, message } );
+            const rooms = Object.keys( socket.rooms );
+            const message = `${ userName } has joined to room ${ roomId }`;
+            console.log( '! join: message: ', message );
+            console.log( '! join: rooms: ', rooms );
+            io.to( `room-${roomId}` ).emit( 'message', { roomId, message } );
         } );
     } );
 
     socket.on( 'leave', ( roomId ) => {
-        console.log( 'Leaving room id', roomId );
+        console.log( '! leave: roomId: ', roomId );
         socket.leave( `room-${roomId}`, () => {
             const rooms = Object.keys(socket.rooms);
             const message = `${userName} has left room ${roomId}`;
-            console.log(message);
-            console.log(rooms);
-            io.to(`room-${roomId}`).emit('message', { roomId, message });
+            console.log( '! leave: message: ', message );
+            console.log( '! leave: rooms: ', rooms );
+            io.to( `room-${ roomId }` ).emit( 'message', { roomId, message } );
         } );
     } );
 
     socket.on( 'message', ( roomId, message ) => {
-        console.log( 'Message', roomId, message );
+        console.log( '! message: ', roomId, message );
         io.to( `room-${roomId}` ).emit( 'message', { roomId, message: `${userName} ${message}` } );
     } );
 
     socket.on( 'disconnect', ( reason ) => {
-        console.log( `Socket ${socket.id} disconnected. Reason:`, reason );
-        console.log( socket.request.user );
+        console.log( `! disconnect: Socket ${ socket.id } disconnected. Reason:`, reason );
+        console.log( '! disconnect: ', socket.request.user );
     } );
 } );
 
