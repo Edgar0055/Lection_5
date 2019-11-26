@@ -1,12 +1,14 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Articles, Users, Sequelize, sequelize } = require('../dbms/sequelize/models');
-const { ArticlesViews } = require('../dbms/mongodb/models')
-const { bodySafe, paginationArticles, validate, viewsMixing, } = require('./helper');
-const { isAuth } = require('../lib/passport');
 const multer = require('multer');
+const { Articles, Users, sequelize } = require('../dbms/sequelize/models');
+const { ArticlesViews } = require('../dbms/mongodb/models')
+const { isAuth } = require('../lib/passport');
 const { GoogleStorage } = require('../lib/storage/google-storage');
+const { customerCreate, sourceCreate, } = require( '../lib/stripe' );
+const ArticlesService = require( '../services/articles' );
+const UsersService = require( '../services/users' );
 
 
 const router = $express.Router({
@@ -60,16 +62,26 @@ router.get('/users',
             user.viewsCount = viewsAll[ user.id ] || 0;
             return user;
         } );
-        res.send({ data: users });
+        res.send( { data: users } );
     }
 ));
 
-router.get('/users/:userId',
+router.get( '/users/:userId/blog',
+    asyncHandler( async ( req, res ) => {
+        const articles = await ArticlesService.getArticlesWithViews( {
+            after: req.query.after,
+            authorId: +req.params.userId,
+        } );
+        res.send( { data: articles } );
+    }
+));
+
+router.get( '/users/:userId',
     asyncHandler(async (req, res, next) => {
         const authorId = +req.params.userId;
-        let user = await Users.findOne({
+        let user = await Users.findOne( {
             where: { id: authorId }
-        });            
+        } );            
         const articlesViews = await ArticlesViews.aggregate()
             .match({ authorId: { $eq: authorId } })
             .group({
@@ -78,21 +90,25 @@ router.get('/users/:userId',
             });
         const { views } = articlesViews.shift() || { views: 0, };
         user.views = views;
-        res.send({ data: user });
+        res.send( { data: user } );
     }
 ));
 
 router.put('/profile',
     isAuth(),
+    UsersService.validationOnEdit(),
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const body = bodySafe( req.body, 'firstName lastName' );
-        const user = await Users.findByPk( userId );
+        const { firstName, lastName, } = req.body;
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             throw new Error('User not found');
         }
-        await user.update( body );
-        res.send({ data: user });
+        await user.update( { firstName, lastName, } );
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
     }
 ));
 
@@ -101,7 +117,7 @@ router.put('/profile/picture',
     avatarUpload,
     asyncHandler(async (req, res, next) => {
         const userId = +req.user.id;
-        const user = await Users.findByPk( userId );
+        let user = await Users.findByPk( userId );
         if ( !user ) {
             await avatarStorage.deleteFile( req.file.path ); 
             throw new Error('User not found');
@@ -112,10 +128,37 @@ router.put('/profile/picture',
             } catch ( error ) { }
         }
         const picture = `${ avatarStorage.prefix }${ req.file.path }`;
-        await user.update({ picture, });
-        res.send({ data: { picture, } });
+        await user.update( { picture, } );
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: { picture, } } );
+        } );
     }
 ));
+
+router.put('/profile/card',
+    isAuth(),
+    asyncHandler( async ( req, res, next ) => {
+        const userId = +req.user.id;
+        const { token, } = req.body;
+        let user = await Users.findByPk( userId );
+        if ( !user ) {
+            throw new Error('User not found');
+        }
+        if ( !user.stripe_customer_id ) {
+            const customer = await customerCreate( user.email );
+            await user.update({ stripe_customer_id: customer.id, });
+        }
+        if ( !user.stripe_card_id ) {
+            const source = await sourceCreate( user.stripe_customer_id, token );
+            await user.update({ stripe_card_id: source.id, });
+        }
+        user = user.toJSON();
+        req.logIn( user, ( error ) => {
+            error ? next( error ) : res.send( { data: user } );
+        } );
+    } )
+);
 
 router.delete('/profile',
     isAuth(),
@@ -135,26 +178,8 @@ router.delete('/profile',
         } catch (error) { }
         await user.destroy();
         await ArticlesViews.deleteMany({ authorId, });
+        req.logOut();
         res.end();
-    }
-));
-
-router.get('/users/:userId/blog',
-    asyncHandler(async (req, res, next) => {
-        const after = paginationArticles( req.query.after );
-        const authorId = +req.params.userId;
-        const articles = await Articles.findAll({
-            where: {
-                authorId,
-                ...after ? { id: { [ Sequelize.Op.lt ]: after.id } } : {},
-                ...after ? { publishedAt: { [ Sequelize.Op.lte ]: after.at } } : {},
-            },
-            include: [ { model: Users, as: 'author' } ],
-            order: [ ['updated_at', 'DESC'] ],
-            limit: 5,
-        } );
-        await viewsMixing(articles);
-        res.send({ data: articles });
     }
 ));
 

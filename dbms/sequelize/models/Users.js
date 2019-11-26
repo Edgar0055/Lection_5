@@ -30,6 +30,28 @@ module.exports = (sequelize, DataTypes) => {
         },
         viewsCount: DataTypes.VIRTUAL,
         articlesCount: DataTypes.VIRTUAL,
+        is_verified: {
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_verified',
+            type: DataTypes.BOOLEAN,
+        },
+        is_pro: {
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_pro',
+            type: DataTypes.BOOLEAN,      
+        },
+        stripe_customer_id: {
+            allowNull: true,
+            field: 'stripe_customer_id',
+            type: DataTypes.STRING,      
+        },
+        stripe_card_id: {
+            allowNull: true,
+            field: 'stripe_card_id',
+            type: DataTypes.STRING,      
+        },
         createdAt: {
             allowNull: false,
             // defaultValue: DataTypes.literal('CURRENT_TIMESTAMP'),
@@ -49,10 +71,20 @@ module.exports = (sequelize, DataTypes) => {
             },
         },
         scopes: {
-            auth: { attributes: { include: [ 'password', ], } },
+            auth: {
+                attributes: {
+                    include: [ 'password', ],
+                }
+            },
             comment: {
                 attributes: [ 'id', 'firstName', 'lastName', 'picture', ],
             },
+            safe: {
+                attributes: {
+                    exclude: [ 'password', 'stripe_customer_id', 'stripe_card_id', ],
+                }
+            },
+
         }
     });
     Users.associate = (models) => {
