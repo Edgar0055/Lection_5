@@ -26,7 +26,7 @@ paths:
               $ref: '#components/schemas/NewArticle'
       responses:
         200:
-          description: hello
+          description: Article created successfully
           content:
             application/json:
               schema:
@@ -42,7 +42,7 @@ paths:
       summary: Get single article
       responses:
         200:
-          description: hello
+          description: Article by ID
           content:
             application/json:
               schema:
@@ -63,7 +63,7 @@ paths:
               $ref: '#components/schemas/NewArticle'
       responses:
         200:
-          description: hello
+          description: Edit article
           content:
             application/json:
               schema:
@@ -79,7 +79,7 @@ paths:
       summary: Remove single article
       responses:
         200:
-          description: hello
+          description: Deleting
           content:
             application/json:
               schema:
@@ -95,7 +95,7 @@ paths:
       summary: Get articles comments
       responses:
         200:
-          description: hello
+          description: Comments
           content:
             application/json:
               schema:
@@ -116,7 +116,7 @@ paths:
               $ref: '#components/schemas/NewComment'
       responses:
         200:
-          description: hello
+          description: Set comment
           content:
             application/json:
               schema:
@@ -133,7 +133,7 @@ paths:
       summary: Remove single article
       responses:
         200:
-          description: hello
+          description: Deleting
           content:
             application/json:
               schema:

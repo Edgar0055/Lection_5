@@ -6,7 +6,7 @@ paths:
       summary: Get list of users
       responses:
         200:
-          description: Users reponses
+          description: List of all users
           content:
             application/json:
               schema:
@@ -17,10 +17,10 @@ paths:
   /api/v1/users/{userId}/blog:
     get:
       tags:
-        - Articles by User
+        - Users
       responses:
         200:
-          description: hello
+          description: Articles of author
           content:
             application/json:
               schema:
@@ -33,10 +33,10 @@ paths:
   /api/v1/users/{userId}:
     get:
       tags:
-        - User
+        - Users
       responses:
         200:
-          description: hello
+          description: User by id
           content:
             application/json:
               schema:
@@ -49,7 +49,7 @@ paths:
   /api/v1/profile:
     put:
       tags:
-        - Profile page
+        - Users
       requestBody:
         description: User edit data
         required: true
@@ -59,7 +59,7 @@ paths:
               $ref: '#/components/requestBody/userEdit'
       responses:
         200:
-          description: hello
+          description: Profile
           content:
             application/json:
               schema:
@@ -70,9 +70,11 @@ paths:
         422:
           $ref: '#/components/responses/422'
     delete:
+      tags:
+        - Users
       responses:
         200:
-          description: hello
+          description: Delete profile
           content:
             application/json:
               schema:
@@ -82,7 +84,7 @@ paths:
   /api/v1/profile/picture:
     put:
       tags:
-        - Profile avatar
+        - Users
       summary: Upload an avatar
       requestBody:
         description: User edit data
@@ -93,7 +95,7 @@ paths:
               $ref: '#/components/requestBody/userPicture'
       responses:
         200:
-          description: hello
+          description: Avatar
           content:
             application/json:
               schema:
@@ -106,7 +108,7 @@ paths:
   /api/v1/profile/card:
     put:
       tags:
-        - Profile card
+        - Users
       summary: Set Card for User
       requestBody:
         description: User init card
@@ -120,7 +122,7 @@ paths:
                   type: string
       responses:
         200:
-          description: hello
+          description: Card
           content:
             application/json:
               schema:

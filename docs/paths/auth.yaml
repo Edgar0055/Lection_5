@@ -13,7 +13,7 @@ paths:
               $ref: '#/components/requestBody/login'
       responses:
         200:
-          description: xxx
+          description: Login successfully
           content:
             application/json:
               schema:
@@ -39,7 +39,7 @@ paths:
               $ref: '#/components/requestBody/userRegistration'
       responses:
         200:
-          description: xxx
+          description: Registration successfully
           content:
             application/json:
               schema:
