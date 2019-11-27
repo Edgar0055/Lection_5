@@ -47,6 +47,13 @@ app.use($bodyParser.json());
 app.set('trust proxy', 1);
 
 
+const server = http.createServer( app );
+const io = socketio( server );
+
+app.use( function( req, res, next ) {
+    req.io = io;
+    next();
+} );
 app.use( '/api/v1', require('./routes/auth') );
 app.use( '/api/v1/blog', requestsLimiter, require('./routes/blog') );
 app.use( '/api/v1', requestsLimiter, require('./routes/user') );
@@ -59,118 +66,66 @@ app.use( function ( error, req, res, next ) {
     res.status( 401 ).send( 'Something broke!' );    
 } );
 
-const server = http.createServer( app );
-const io = socketio( server );
-
 
 io.adapter( adapter( $process.env.REDIS_URL ) );
 io.use( passportSocketIo.authorize( {
     key: sessionConfig.name,
     secret: sessionConfig.secret,
     store: sessionConfig.store,
-    fail: ( data, message, error, accept ) => {
-        // console.log( '! passportSocketIo.authorize: ', data, message );
-        accept();
-    },
+    fail: ( req, message, error, accept ) => accept(),
 } ) );
 io.use( ( socket, next ) => {
-    // console.log( '! io.use: ', socket );
-    // 
     next();
 } );
-
 io.on( 'connection', function ( socket ) {
-    console.log( '! connection: Socket', socket.id, 'connected.' );
-    io.of( '/' ).adapter.clients( ( err, clients ) => {
-        console.log( '!connection: ', `${ clients.length } clients connected.` );
-    } );
-    console.log( '! connection: socket.request.user: ', socket.request.user );
+    const socketId = socket.id;
     const userId = socket.request.user.id;
-    const userName = socket.request.user.name || 'Anonymous';
+    const userName = socket.request.user.firstName || 'Anonymous';
     const isLoggedIn = socket.request.user.logged_in || false;
-    const ip = socket.request.connection.remoteAddress;
-
-    socket.use( ( packet, next ) => {
-        const event = packet[0];
-        console.log( '! socket.use: event: ', { event } );
-        rateLimiter.consume( ip ).then( ( consume ) => {
-            console.log( '! socket.use: consume: ', { consume } );
-            next();
-        } ).catch( ( consume ) => {
-            next( new Error( 'Rate limit error' ) );
-        } );
+    const userIP = socket.request.connection.remoteAddress;
+    console.log( `Socket ${ socketId } connected` );
+    io.of( '/' ).adapter.clients( ( error, clients ) => {
+        console.log( `${ clients.length } clients connected.` );
     } );
+    console.log( `${ userName } { id: ${ userId }, logged: ${ isLoggedIn } } connected` );
 
-    // socket.on( 'join', ( roomId ) => {
-    //     console.log( '! join: roomId: ', roomId );
-    //     // check permission ?
-    //     socket.join( `room-${roomId}`, () => {
-    //         const rooms = Object.keys( socket.rooms );
-    //         const message = `${ userName } has joined to room ${ roomId }`;
-    //         console.log( '! join: message: ', message );
-    //         console.log( '! join: rooms: ', rooms );
-    //         io.to( `room-${roomId}` ).emit( 'message', { roomId, message } );
-    //     } );
-    // } );
-
-    // socket.on( 'leave', ( roomId ) => {
-    //     console.log( '! leave: roomId: ', roomId );
-    //     socket.leave( `room-${roomId}`, () => {
-    //         const rooms = Object.keys(socket.rooms);
-    //         const message = `${userName} has left room ${roomId}`;
-    //         console.log( '! leave: message: ', message );
-    //         console.log( '! leave: rooms: ', rooms );
-    //         io.to( `room-${ roomId }` ).emit( 'message', { roomId, message } );
-    //     } );
-    // } );
+    socket.use( async ( packet, next ) => {
+        try {
+            const [ event, args ] = packet;
+            console.log( `User ${ userId } event ${ event }`, args );
+            const consume = await rateLimiter.consume( userIP );
+            // console.log( `User ${ userId } consume`, consume );
+            next();
+        } catch ( error ) {
+            next( new Error( 'Rate limit error' ) );
+        }
+    } );
 
     socket.on( 'watch-comments', ( articleId ) => {
-        if ( !socket.request.user.logged_in ) {
-            return;
-        }
-        console.log( '! watch: articleId: ', articleId );
-        // check permission ?
-        socket.join( `articleId-${ articleId }`, () => {
-            const rooms = Object.keys( socket.rooms );
-            const message = `${ userName } has joined to room ${ articleId }`;
-            console.log( '! watch: message: ', message );
-            console.log( '! watch: rooms: ', rooms );
-            io.to( `articleId-${ articleId }` ).emit( 'message', { articleId, message } );
-        } );
+        const roomId = `articleId-${ articleId }`;
+        const message = `${ userName } has joined to room ${ roomId }`;
+        console.log( `User ${ userName } watch-comments on article ${ articleId }` );
+        socket.join( roomId, () => io.to( roomId ).emit( 'message', { articleId, message, } ) );
     } );
 
     socket.on( 'unwatch-comments', ( articleId ) => {
-        if ( !socket.request.user.logged_in ) {
-            return;
-        }
-        console.log( '! unwatch: articleId: ', articleId );
-        socket.leave( `articleId-${ articleId }`, () => {
-            const rooms = Object.keys(socket.rooms);
-            const message = `${userName} has left room ${ articleId }`;
-            console.log( '! unwatch: message: ', message );
-            console.log( '! unwatch: rooms: ', rooms );
-            io.to( `articleId-${ articleId }` ).emit( 'message', { articleId, message } );
-        } );
+        const roomId = `articleId-${ articleId }`;
+        const message = `${ userName } has left room ${ roomId }`;
+        console.log( `User ${ userName } unwatch-comments on article ${ articleId }` );
+        socket.leave( roomId, () => io.to( roomId ).emit( 'message', { articleId, message, } ) );
     } );
 
     socket.on( 'comment-typing', ( articleId ) => {
-        if ( !socket.request.user.logged_in ) {
+        const roomId = `articleId-${ articleId }`;
+        console.log( `User ${ userName } comment-typing on article ${ articleId }` );
+        if ( !isLoggedIn ) {
             return;
         }
-        console.log( '! typing: articleId: ', articleId, socket.request.user.id );
-
-        io.to( `articleId-${ articleId }` ).emit( 'comment-typing', {} );
-    } );
-
-
-    socket.on( 'message', ( articleId, message ) => {
-        console.log( '! message: ', articleId, message );
-        io.to( `articleId-${articleId}` ).emit( 'message', { articleId, message: `${userName} ${message}` } );
+        io.to( roomId ).emit( 'comment-typing', { articleId, userName, } );
     } );
 
     socket.on( 'disconnect', ( reason ) => {
-        console.log( `! disconnect: Socket ${ socket.id } disconnected. Reason:`, reason );
-        console.log( '! disconnect: ', socket.request.user );
+        console.log( `Socket ${ socket.id } disconnected. Reason: ${ reason }` );
     } );
 } );
 
