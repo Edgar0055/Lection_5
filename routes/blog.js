@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 const $express = require('express');
 const asyncHandler = require('express-async-handler');
+const socketio = require('socket.io');
 const multer = require('multer');
 const { Articles, Users, Comments, } = require('../dbms/sequelize/models');
 const { ArticlesViews } = require('../dbms/mongodb/models');
@@ -158,8 +159,11 @@ router.post('/:articleId/comments',
                 { model: Users.scope('comment'), as: 'author', },
             ],
         });
-        res.send({ data: comment });
         // TODO: socket room: articleId  broudcast: [ "comment", { "action": "create", "data": { comment, } } ]
+        const io = socketio( req.connection.server );
+        io.to( `articleId-${ articleId }` ).emit( 'comment', { action: 'create', data: { comment, } } );
+
+        res.send({ data: comment });
     })
 );
 
@@ -175,9 +179,12 @@ router.delete('/:articleId/comments/:commentId',
         if ( !comment ) {
             throw new Error('Comment not found');
         }
+        // TODO: socket room: articleId  broudcast: [ "comment", { "action": "destroy", "data": { comment, } } 
+        const io = socketio( req.connection.server );
+        io.to( `articleId-${ articleId }` ).emit( 'comment', { action: 'destroy', data: { comment, } } );
+
         await comment.destroy();
         res.end();
-        // TODO: socket room: articleId  broudcast: [ "comment", { "action": "destroy", "data": { comment, } } ]
     })
 );
 

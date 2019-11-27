@@ -99,32 +99,71 @@ io.on( 'connection', function ( socket ) {
         } );
     } );
 
-    socket.on( 'join', ( roomId ) => {
-        console.log( '! join: roomId: ', roomId );
+    // socket.on( 'join', ( roomId ) => {
+    //     console.log( '! join: roomId: ', roomId );
+    //     // check permission ?
+    //     socket.join( `room-${roomId}`, () => {
+    //         const rooms = Object.keys( socket.rooms );
+    //         const message = `${ userName } has joined to room ${ roomId }`;
+    //         console.log( '! join: message: ', message );
+    //         console.log( '! join: rooms: ', rooms );
+    //         io.to( `room-${roomId}` ).emit( 'message', { roomId, message } );
+    //     } );
+    // } );
+
+    // socket.on( 'leave', ( roomId ) => {
+    //     console.log( '! leave: roomId: ', roomId );
+    //     socket.leave( `room-${roomId}`, () => {
+    //         const rooms = Object.keys(socket.rooms);
+    //         const message = `${userName} has left room ${roomId}`;
+    //         console.log( '! leave: message: ', message );
+    //         console.log( '! leave: rooms: ', rooms );
+    //         io.to( `room-${ roomId }` ).emit( 'message', { roomId, message } );
+    //     } );
+    // } );
+
+    socket.on( 'watch-comments', ( articleId ) => {
+        if ( !socket.request.user.logged_in ) {
+            return;
+        }
+        console.log( '! watch: articleId: ', articleId );
         // check permission ?
-        socket.join( `room-${roomId}`, () => {
+        socket.join( `articleId-${ articleId }`, () => {
             const rooms = Object.keys( socket.rooms );
-            const message = `${ userName } has joined to room ${ roomId }`;
-            console.log( '! join: message: ', message );
-            console.log( '! join: rooms: ', rooms );
-            io.to( `room-${roomId}` ).emit( 'message', { roomId, message } );
+            const message = `${ userName } has joined to room ${ articleId }`;
+            console.log( '! watch: message: ', message );
+            console.log( '! watch: rooms: ', rooms );
+            io.to( `articleId-${ articleId }` ).emit( 'message', { articleId, message } );
         } );
     } );
 
-    socket.on( 'leave', ( roomId ) => {
-        console.log( '! leave: roomId: ', roomId );
-        socket.leave( `room-${roomId}`, () => {
+    socket.on( 'unwatch-comments', ( articleId ) => {
+        if ( !socket.request.user.logged_in ) {
+            return;
+        }
+        console.log( '! unwatch: articleId: ', articleId );
+        socket.leave( `articleId-${ articleId }`, () => {
             const rooms = Object.keys(socket.rooms);
-            const message = `${userName} has left room ${roomId}`;
-            console.log( '! leave: message: ', message );
-            console.log( '! leave: rooms: ', rooms );
-            io.to( `room-${ roomId }` ).emit( 'message', { roomId, message } );
+            const message = `${userName} has left room ${ articleId }`;
+            console.log( '! unwatch: message: ', message );
+            console.log( '! unwatch: rooms: ', rooms );
+            io.to( `articleId-${ articleId }` ).emit( 'message', { articleId, message } );
         } );
     } );
 
-    socket.on( 'message', ( roomId, message ) => {
-        console.log( '! message: ', roomId, message );
-        io.to( `room-${roomId}` ).emit( 'message', { roomId, message: `${userName} ${message}` } );
+    socket.on( 'comment-typing', ( articleId ) => {
+        if ( !socket.request.user.logged_in ) {
+            return;
+        }
+        console.log( '! typing: articleId: ', articleId, socket.request.user.id );
+
+        io.to( `articleId-${ articleId }` ).emit( 'comment-typing', {} );
+    } );
+
+
+    socket.on( 'message', ( articleId, message ) => {
+        console.log( '! message: ', articleId, message );
+        io.to( `articleId-${articleId}` ).emit( 'message', { articleId, message: `${userName} ${message}` } );
     } );
 
     socket.on( 'disconnect', ( reason ) => {
