@@ -1,0 +1,65 @@
+paths:
+  /api/v1/login:
+    post:
+      tags:
+        - Auth
+      summary: Login User
+      requestBody:
+        description: Login data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBody/login'
+      responses:
+        200:
+          description: Login successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+        401:
+          $ref: '#/components/responses/401'
+  /api/v1/registration:
+    post:
+      tags:
+        - Auth
+      summary: Regist User
+      requestBody:
+        description: Regist data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBody/userRegistration'
+      responses:
+        200:
+          description: Registration successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+  /api/v1/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      responses:
+        401:
+          $ref: '#/components/responses/401'
+      
+
+                
+
+
+

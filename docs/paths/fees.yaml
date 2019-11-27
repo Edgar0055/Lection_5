@@ -1,0 +1,54 @@
+paths:
+  /api/v1/fees:
+    get:
+      tags:
+        - Fees
+      summary: Get fees
+      responses:
+        200:
+          description: Fees responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      amount:
+                        type: integer
+                        required: true
+        401:
+          $ref: '#/components/responses/401'
+    put:
+      tags:
+        - Fees
+      summary: Charge
+      requestBody:
+        description: Create charge
+        required: true
+        content: 
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  $ref: '#/components/requestBody/amount'
+      responses:
+        200:
+          description: Fees responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      amount: 
+                        type: integer
+                        required: true
+                      user:
+                        $ref: '#/components/schemas/User'
+        401:
+          $ref: '#/components/responses/401'

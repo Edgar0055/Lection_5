@@ -1,0 +1,27 @@
+components:
+  schemas:
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The user ID.
+        content:
+          type: string
+          nullable: false
+        author:
+          $ref: '#/components/schemas/User'
+        authorId:
+          type: integer
+          nullable: false
+        articleId:
+          type: integer
+          nullable: false
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        
+          

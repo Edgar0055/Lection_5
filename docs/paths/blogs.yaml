@@ -1,0 +1,150 @@
+paths:
+  /api/v1/blog:
+    get:
+      tags:
+        - Articles
+      summary: Get list of articles
+      responses:
+        200:
+          description: Articles responses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfArticles'
+    post:
+      tags:
+        - Articles
+      summary: Craete new articles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/NewArticle'
+      responses:
+        200:
+          description: Article created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+
+  /api/v1/blog/{blogId}:
+    get:
+      tags:
+        - Articles
+      summary: Get single article
+      responses:
+        200:
+          description: Article by ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+    put:
+      tags:
+        - Articles
+      summary: Edit single article
+      requestBody:
+        description: Article edit data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/NewArticle'
+      responses:
+        200:
+          description: Edit article
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Article'
+        422:
+          $ref: '#/components/responses/422'
+    delete:
+      tags:
+        - Articles
+      summary: Remove single article
+      responses:
+        200:
+          description: Deleting
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          $ref: '#/components/responses/401'
+    parameters:
+      - $ref: '#/components/parameters/blogId'
+  /api/v1/blog/{blogId}/comments:
+    get:
+      tags:
+        - Articles
+      summary: Get articles comments
+      responses:
+        200:
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfComments'
+    post:
+      tags:
+        - Articles
+      summary: Add new comment
+      requestBody:
+        description: Comment content
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/NewComment'
+      responses:
+        200:
+          description: Set comment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Comment'
+    parameters:
+      - $ref: '#/components/parameters/blogId'
+  /api/v1/blog/{blogId}/comments/{commentId}:
+    delete:
+      tags:
+        - Articles
+      summary: Remove single article
+      responses:
+        200:
+          description: Deleting
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          $ref: '#/components/responses/401'
+    parameters:
+      - $ref: '#/components/parameters/blogId'
+      - $ref: '#/components/parameters/commentId'
+      
+
+    
+
+      

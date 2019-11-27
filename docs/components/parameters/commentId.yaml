@@ -1,0 +1,9 @@
+components:
+  parameters:
+    commentId:
+      in: path
+      name: commentId
+      schema:
+        type: integer
+      required: true
+      description: Numeric Id of Comment

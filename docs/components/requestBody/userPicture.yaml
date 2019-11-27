@@ -1,0 +1,7 @@
+components:
+  requestBody:
+    userPicture:
+      type: object
+      properties:
+        picture:
+          $ref: '#/components/requestBodyPart/picture'
