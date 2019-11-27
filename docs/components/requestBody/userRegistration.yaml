@@ -1,0 +1,14 @@
+components:
+  requestBody:
+    userRegistration:
+      type: object
+      properties:
+        firstName:
+          $ref: '#/components/requestBodyPart/firstName'
+        lastName:
+          $ref: '#/components/requestBodyPart/lastName'
+        email:
+          $ref: '#/components/requestBodyPart/email'
+        password:
+          $ref: '#/components/requestBodyPart/password'
+

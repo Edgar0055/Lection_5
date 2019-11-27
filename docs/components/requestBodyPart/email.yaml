@@ -1,0 +1,5 @@
+components:
+  requestBodyPart:
+    email:
+      type: string
+      required: true

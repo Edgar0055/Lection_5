@@ -1,0 +1,39 @@
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The user ID.
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        picture:
+          type: string
+        articlesCount:
+          type: integer
+        is_pro:
+          type: boolean
+          nullable: true
+        is_verified:
+          type: boolean
+          nullable: true
+        stripe_customer_id:
+          type: string
+          nullable: true
+        stripe_card_id:
+          type: string
+          nullable: true
+        viewsCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+          

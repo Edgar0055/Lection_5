@@ -1,0 +1,8 @@
+components:
+  schemas:
+    NewComment:
+      type: object
+      properties:
+        content:
+          type: string
+          nullable: false
