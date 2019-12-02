@@ -1,0 +1,136 @@
+paths:
+  /api/v1/users:
+    get:
+      tags:
+        - Users
+      summary: Get list of users
+      responses:
+        200:
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfUsers'
+  /api/v1/users/{userId}/blog:
+    get:
+      tags:
+        - Users
+      responses:
+        200:
+          description: Articles of author
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ArrayOfArticles'
+    parameters:
+      - $ref: '#/components/parameters/userId'
+  /api/v1/users/{userId}:
+    get:
+      tags:
+        - Users
+      responses:
+        200:
+          description: User by id
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+    parameters:
+      - $ref: '#/components/parameters/userId'
+  /api/v1/profile:
+    put:
+      tags:
+        - Users
+      requestBody:
+        description: User edit data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/requestBody/userEdit'
+      responses:
+        200:
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+    delete:
+      tags:
+        - Users
+      responses:
+        200:
+          description: Delete profile
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          $ref: '#/components/responses/401'
+  /api/v1/profile/picture:
+    put:
+      tags:
+        - Users
+      summary: Upload an avatar
+      requestBody:
+        description: User edit data
+        required: true
+        content: 
+          multipart/form-data:
+            schema:
+              $ref: '#/components/requestBody/userPicture'
+      responses:
+        200:
+          description: Avatar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Picture'
+        422:
+          $ref: '#/components/responses/422'
+  /api/v1/profile/card:
+    put:
+      tags:
+        - Users
+      summary: Set Card for User
+      requestBody:
+        description: User init card
+        required: true
+        content: 
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        200:
+          description: Card
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        422:
+          $ref: '#/components/responses/422'
+
+

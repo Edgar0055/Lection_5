@@ -1,0 +1,6 @@
+components:
+  schemas:
+    ArrayOfUsers:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'

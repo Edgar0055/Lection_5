@@ -1,0 +1,9 @@
+components:
+  requestBody:
+    login:
+      type: object
+      properties:
+        email:
+          $ref: '#/components/requestBodyPart/email'
+        password:
+          $ref: '#/components/requestBodyPart/password'

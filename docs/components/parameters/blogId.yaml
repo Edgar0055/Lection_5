@@ -1,0 +1,9 @@
+components:
+  parameters:
+    blogId:
+      in: path
+      name: blogId
+      schema:
+        type: integer
+      required: true
+      description: Numeric Id of Article

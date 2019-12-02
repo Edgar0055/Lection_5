@@ -1,0 +1,24 @@
+components:
+  responses:
+    422:
+      description: hello
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                      required: true
+                    msg:
+                      type: string
+                      required: true
+                    param:
+                      type: string
+                    location:
+                      type: string

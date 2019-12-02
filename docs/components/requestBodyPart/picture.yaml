@@ -1,0 +1,6 @@
+components:
+  requestBodyPart:
+    picture:
+      type: string
+      format: binary
+      required: true

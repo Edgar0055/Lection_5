@@ -1,0 +1,9 @@
+components:
+  requestBody:
+    userEdit:
+      type: object
+      properties:
+        firstName:
+          $ref: '#/components/requestBodyPart/firstName'
+        lastName:
+          $ref: '#/components/requestBodyPart/lastName'

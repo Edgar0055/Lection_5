@@ -1,0 +1,6 @@
+components:
+  schemas:
+    ArrayOfComments:
+      type: array
+      items:
+        $ref: '#/components/schemas/Comment'

@@ -1,0 +1,8 @@
+components:
+  responses:
+    401:
+      description: hello
+      content:
+        text/html:
+          schema:
+            type: string
