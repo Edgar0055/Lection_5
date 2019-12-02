@@ -158,6 +158,7 @@ router.post('/:articleId/comments',
                 { model: Users.scope('comment'), as: 'author', },
             ],
         });
+        req.io.to( `articleId-${ articleId }` ).emit( 'comment', { action: 'create', data: { comment, } } );
         res.send({ data: comment });
     })
 );
@@ -169,11 +170,12 @@ router.delete('/:articleId/comments/:commentId',
         const articleId = +req.params.articleId;
         const commentId = +req.params.commentId;
         const comment = await Comments.findOne({
-            where: {id: commentId, articleId, authorId, },
+            where: { id: commentId, articleId, authorId, },
         });
         if ( !comment ) {
             throw new Error('Comment not found');
         }
+        req.io.to( `articleId-${ articleId }` ).emit( 'comment', { action: 'destroy', data: { comment, } } );
         await comment.destroy();
         res.end();
     })

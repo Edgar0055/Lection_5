@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             type: DataTypes.STRING,
             get () {
-                return this.getDataValue('title').toLowerCase();
+                return this.getDataValue('title');
             },
             set (value) {
                 return this.setDataValue('title', value);
