@@ -44,7 +44,7 @@
     "process": "^0.11.10",
     "rate-limit-redis": "^1.6.0",
     "rate-limiter-flexible": "^1.1.6",
-    "redis": "^2.8.0",
+    "redis": "^3.1.1",
     "sequelize": "^5.19.4",
     "sharp": "^0.23.2",
     "socket.io": "^2.3.0",
